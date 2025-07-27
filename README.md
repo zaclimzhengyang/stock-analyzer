@@ -4,5 +4,5 @@ This stock screener application allows users to
 3. run monte carlo simulation
 
 To set up locally
-1. run stock-screener/app/main.py
+1. run stock-analyzer/app/main.py
 2. run streamlit run app.py
