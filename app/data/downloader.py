@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Union
 
+import requests
 import yfinance as yf
 import pandas as pd
 
@@ -27,3 +28,27 @@ def get_fundamentals(ticker):
         ),
         "market_cap": float(info.get("marketCap")) if info.get("marketCap") else None,
     }
+
+
+def fetch_nasdaq_companies(limit: int = 100) -> pd.DataFrame:
+    url = "https://api.nasdaq.com/api/screener/stocks"
+    params = {
+        "tableonly": "true",
+        "limit": 5000,
+        "offset": 0,
+        "exchange": "nasdaq",
+        "download": "true"
+    }
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
+
+    resp = requests.get(url, headers=headers, params=params)
+    resp.raise_for_status()
+    resp_data = resp.json()["data"]["rows"]
+
+    df = pd.DataFrame(resp_data)
+    df["marketCap"] = pd.to_numeric(df["marketCap"].str.replace(r"[\$,]", "", regex=True), errors="coerce")
+    df = df.dropna(subset=["marketCap"])
+    df = df.sort_values("marketCap", ascending=False).head(limit)
+    return df

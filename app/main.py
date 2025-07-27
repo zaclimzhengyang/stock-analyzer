@@ -1,5 +1,4 @@
-import json
-
+import pandas as pd
 from flask import Flask, jsonify
 from flask_cors import CORS
 
@@ -7,6 +6,7 @@ from app.backtest.backtest import get_backtest
 from app.data.downloader import get_price_data, get_fundamentals
 from app.factors.momentum import generate_signals, generate_momentum_score
 from app.mote_carlo.simulation import mc_simulation
+from app.prediction.predictor import StockPredictor, scan_top_nasdaq
 
 app = Flask(__name__)
 CORS(app)
@@ -58,6 +58,24 @@ def backtest(ticker):
 def mc_sim(ticker):
     result = mc_simulation(ticker)
     return jsonify(result)
+
+@app.route("/api/predict/<ticker>", methods=["GET"])
+def predict(ticker):
+    try:
+        predictor = StockPredictor(ticker)
+        predictor.train()
+        decision = predictor.predict_latest()
+        return jsonify({"ticker": ticker, "recommendation": decision})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/nasdaq-buy-recs", methods=["GET"])
+def nasdaq():
+    try:
+        buy_rec: pd.DataFrame = scan_top_nasdaq()
+        return jsonify(buy_rec.to_dict(orient='records'))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True, port=8000)

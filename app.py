@@ -81,3 +81,28 @@ if submitted:
 
     except Exception as e:
         st.error(f"One or more analyses failed: {e}")
+
+st.title("NASDAQ Buy Recommendations")
+
+if st.button("Load Buy Recommendations"):
+    try:
+        url = "http://localhost:8000/api/nasdaq-buy-recs"
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+
+        if data:
+            df = pd.DataFrame(data)
+            df = df.rename(columns={
+                "ticker": "Ticker",
+                "marketCap": "Market Cap",
+                "recommendation": "Recommendation"
+            })
+
+            st.table(df)
+        else:
+            st.write("No buy recommendations found.")
+    except Exception as e:
+        st.error(f"Failed to fetch buy recommendations: {e}")
+
+
