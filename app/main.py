@@ -6,6 +6,7 @@ from flask_cors import CORS
 from app.backtest.backtest import get_backtest
 from app.data.downloader import get_price_data, get_fundamentals
 from app.factors.momentum import generate_signals, generate_momentum_score
+from app.mote_carlo.simulation import mc_simulation
 
 app = Flask(__name__)
 CORS(app)
@@ -53,6 +54,10 @@ def backtest(ticker):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/api/monte-carlo-sim/<ticker>", methods=["GET"])
+def mc_sim(ticker):
+    result = mc_simulation(ticker)
+    return jsonify(result.tolist())
 
 if __name__ == "__main__":
     app.run(debug=True, port=8000)
