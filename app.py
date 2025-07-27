@@ -4,88 +4,60 @@ import streamlit as st
 import requests
 import plotly.graph_objects as go
 
+from constants import metrics
+
+def _rename_columns(df: pd.DataFrame) -> None:
+    df.rename(index=metrics, inplace=True)
+
+def get_request(url: str) -> requests.Response:
+    r = requests.get(url)
+    r.raise_for_status()
+    return r
+
 st.title("📈 Quantitative Stock Analyzer")
 
-ticker = st.text_input("Enter a stock ticker (e.g., AAPL)", "AAPL")
+with st.form("ticker_form"):
+    ticker = st.text_input("Enter a stock ticker (e.g., AAPL)", "AAPL")
+    submitted = st.form_submit_button("Run All Analysis")
 
-if "action" not in st.session_state:
-    st.session_state.action = None
+if submitted:
+    st.info("Running all analyses...")
 
-col1, col2 = st.columns(2)
-col3 = st.columns(1)[0]
+    # Create placeholders so content can be shown side-by-side or section-by-section
+    fundamentals_container = st.container()
+    backtest_container = st.container()
+    mc_container = st.container()
 
-with col1:
-    if st.button("Analyze"):
-        st.session_state.action = "analyze"
-with col2:
-    if st.button("Run Backtest"):
-        st.session_state.action = "backtest"
-with col3:
-    if col3.button("Monte Carlo Simulation"):
-        st.session_state.action = "monte_carlo"
-
-if ticker and st.session_state.action == "analyze":
-    st.info("Fetching fundamental data...")
     try:
-        url = f"http://localhost:8000/api/analyze/{ticker}"
-        r = requests.get(url)
-        r.raise_for_status()
-        data = r.json()
-        st.subheader("📊 Fundamentals")
-        st.json(data)
-    except Exception as e:
-        st.error(f"Error fetching fundamentals: {e}")
+        # === Fundamental Data ===
+        fundamentals_container.subheader("📊 Fundamentals")
+        r1 = get_request(f"http://localhost:8000/api/analyze/{ticker}")
+        fundamentals_data = r1.json()
 
-elif ticker and st.session_state.action == "backtest":
-    st.info("Running backtest...")
-    try:
-        url = f"http://localhost:8000/api/backtest/{ticker}"
-        r = requests.get(url)
-        r.raise_for_status()
-        data = r.json()
-        backtest_data = pd.Series(data)
-        st.line_chart(backtest_data)
+        # Convert dict to single-column DataFrame
+        fundamentals_df = pd.DataFrame.from_dict(fundamentals_data, orient='index', columns=['Value'])
+        fundamentals_df.index.name = 'Metric'
 
-        st.success(f"Final portfolio value: ${backtest_data.iloc[-1, 0]:,.2f}")
+        _rename_columns(fundamentals_df)
 
-        fig = go.Figure()
-        fig.add_trace(
-            go.Scatter(
-                x=backtest_data.index,
-                y=backtest_data.iloc[:, 0],
-                name="Portfolio Value",
-            )
-        )
-        fig.update_layout(
-            title="Backtest Portfolio Performance",
-            xaxis_title="Date",
-            yaxis_title="Value ($)",
-        )
-        st.plotly_chart(fig)
+        fundamentals_container.table(fundamentals_df)
 
-    except Exception as e:
-        st.error(f"Backtest failed: {e}")
+        # === Backtest Data ===
+        backtest_container.subheader("📈 Backtest")
+        r2 = get_request(f"http://localhost:8000/api/backtest/{ticker}")
+        backtest_data = pd.Series(r2.json())
+        backtest_container.line_chart(backtest_data)
+        backtest_container.success(f"Final portfolio value: ${backtest_data.iloc[-1]:,.2f}")
 
-elif ticker and st.session_state.action == "monte_carlo":
-    st.info("Running Monte Carlo simulation...")
-    try:
-        url = f"http://localhost:8000/api/monte-carlo-sim/{ticker}"
-        r = requests.get(url)
-        r.raise_for_status()
-        sim_data = np.array(r.json())
-
+        # === Monte Carlo Simulation ===
+        mc_container.subheader("🎲 Monte Carlo Simulation")
+        r3 = get_request(f"http://localhost:8000/api/monte-carlo-sim/{ticker}")
+        sim_data = np.array(r3.json())
         df_sim = pd.DataFrame(sim_data)
 
         fig = go.Figure()
-
         for col in df_sim.columns:
-            fig.add_trace(go.Scatter(
-                x=df_sim.index,
-                y=df_sim[col],
-                mode='lines',
-                line=dict(width=1),
-                showlegend=False
-            ))
+            fig.add_trace(go.Scatter(x=df_sim.index, y=df_sim[col], mode='lines', line=dict(width=1), showlegend=False))
 
         fig.update_layout(
             title="Monte Carlo Simulation of Portfolio Performance",
@@ -93,9 +65,7 @@ elif ticker and st.session_state.action == "monte_carlo":
             yaxis_title="Simulated Portfolio Value ($)",
             template="plotly_white"
         )
-
-        st.plotly_chart(fig, use_container_width=True)
+        mc_container.plotly_chart(fig, use_container_width=True)
 
     except Exception as e:
-        st.error(f"Simulation failed: {e}")
-
+        st.error(f"One or more analyses failed: {e}")
