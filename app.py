@@ -52,7 +52,9 @@ if submitted:
         # === Monte Carlo Simulation ===
         mc_container.subheader("🎲 Monte Carlo Simulation")
         r3 = get_request(f"http://localhost:8000/api/monte-carlo-sim/{ticker}")
-        sim_data = np.array(r3.json())
+        sim_result = r3.json()
+        sim_data = np.array(sim_result["simulations"])
+
         df_sim = pd.DataFrame(sim_data)
 
         fig = go.Figure()
@@ -66,6 +68,16 @@ if submitted:
             template="plotly_white"
         )
         mc_container.plotly_chart(fig, use_container_width=True)
+
+        st.markdown(f"""
+        <div style="font-size:22px; font-weight:600; margin-bottom:4px;">5% VaR</div>
+        <div style="font-size:18px; color:crimson;">${sim_result['VaR_5']:,.2f}</div>
+        """, unsafe_allow_html=True)
+
+        st.markdown(f"""
+        <div style="font-size:22px; font-weight:600; margin-bottom:4px;">5% CVaR</div>
+        <div style="font-size:18px; color:crimson;">${sim_result['CVaR_5']:,.2f}</div>
+        """, unsafe_allow_html=True)
 
     except Exception as e:
         st.error(f"One or more analyses failed: {e}")

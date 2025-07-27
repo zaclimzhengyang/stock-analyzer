@@ -57,7 +57,7 @@ def backtest(ticker):
 @app.route("/api/monte-carlo-sim/<ticker>", methods=["GET"])
 def mc_sim(ticker):
     result = mc_simulation(ticker)
-    return jsonify(result.tolist())
+    return jsonify(result)
 
 if __name__ == "__main__":
     app.run(debug=True, port=8000)
