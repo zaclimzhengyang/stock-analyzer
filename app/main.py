@@ -5,7 +5,7 @@ from flask_cors import CORS
 from app.backtest.backtest import get_backtest
 from app.data.downloader import get_price_data, get_fundamentals
 from app.factors.momentum import generate_signals, generate_momentum_score
-from app.mote_carlo.simulation import mc_simulation
+from app.monte_carlo.simulation import mc_simulation
 from app.prediction.predictor import StockPredictor, scan_top_nasdaq
 
 app = Flask(__name__)
