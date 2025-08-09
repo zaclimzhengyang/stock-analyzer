@@ -8,9 +8,10 @@ from sklearn.preprocessing import StandardScaler
 
 from app.data.downloader import fetch_nasdaq_companies
 
+
 class StockPredictor:
     def __init__(self, ticker: Optional[str] = None, days: int = 180):
-        self.ticker = ticker or ''
+        self.ticker = ticker or ""
         self.days = days
         self.model = RandomForestClassifier(n_estimators=100, random_state=42)
         self.scaler = StandardScaler()
@@ -26,7 +27,9 @@ class StockPredictor:
         df["MA50"] = df["Close"].rolling(window=50).mean()
         df["Volatility"] = df["Close"].rolling(window=10).std()
         df["FutureReturn"] = df["Close"].shift(-5) / df["Close"] - 1
-        df["Signal"] = (df["FutureReturn"] > 0.02).astype(int) # Buy if expected 5-day return > 2%
+        df["Signal"] = (df["FutureReturn"] > 0.02).astype(
+            int
+        )  # Buy if expected 5-day return > 2%
         df["Volume_Change"] = df["Volume"].pct_change()
         df["Momentum"] = df["Close"] - df["Close"].shift(10)
         # df["RSI"] = RSIIndicator(close=df["Close"], window=14).rsi()
@@ -38,7 +41,9 @@ class StockPredictor:
         features = df[["Return", "MA10", "MA50", "Volatility"]].values
         labels = df["Signal"].values.ravel()
         X_scaled = self.scaler.fit_transform(features)
-        X_train, _, y_train, _ = train_test_split(X_scaled, labels, test_size=0.2, random_state=42)
+        X_train, _, y_train, _ = train_test_split(
+            X_scaled, labels, test_size=0.2, random_state=42
+        )
         self.model.fit(X_train, y_train)
 
     def predict_latest(self) -> str:
@@ -61,7 +66,9 @@ def scan_top_nasdaq(limit: int = 100, top_k: int = 10) -> pd.DataFrame:
             model.train()
             rec = model.predict_latest()
             if rec == "Buy":
-                results.append({"ticker": ticker, "marketCap": market_cap, "recommendation": rec})
+                results.append(
+                    {"ticker": ticker, "marketCap": market_cap, "recommendation": rec}
+                )
         except Exception as e:
             print(f"Error for {ticker}: {e}")
 
