@@ -15,13 +15,13 @@ def generate_momentum_score(price_df: pd.DataFrame) -> Optional[float]:
     :return:
     """
     try:
-        ret = price_df["Close"].iloc[-1] / price_df["Close"].iloc[-60] - 1
+        if "Close" not in price_df.columns or price_df.empty:
+            return None
+
+        idx = max(0, len(price_df) - 60)
+        ret = price_df["Close"].iloc[-1] / price_df["Close"].iloc[idx] - 1
         return float(round(ret, 4))
-    except KeyError:
-        return None
-    except IndexError:
-        return None
-    except ZeroDivisionError:
+    except (KeyError, ZeroDivisionError):
         return None
 
 
