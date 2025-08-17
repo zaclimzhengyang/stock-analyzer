@@ -11,6 +11,17 @@ def generate_momentum_score(price_df: pd.DataFrame) -> Optional[float]:
     Financial Description:
     - Momentum: The tendency of assets with recent high returns to continue performing well.
     """
+    """
+    Generate trading signals based on price and its 50-day moving average.
+
+    Returns:
+    - 1 if price > 50-day MA (buy signal)
+    - -1 if price <= 50-day MA (sell signal)
+    - 0 otherwise
+
+    Financial Description:
+    - Moving average crossover is a classic trend-following strategy.
+    """
     if "Close" not in price_df.columns or price_df.empty:
         return None
     idx = max(0, len(price_df) - 60)
