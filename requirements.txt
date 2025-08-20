@@ -8,3 +8,5 @@ black
 scipy
 matplotlib
 scikit-learn
+statsmodels
+pmdarima

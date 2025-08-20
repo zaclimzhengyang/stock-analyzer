@@ -35,8 +35,6 @@ def mc_simulation(ticker: str) -> dict:
 
     Financial Description:
     - Monte Carlo simulation: Randomly generates price paths to estimate risk.
-    - VaR and CVaR: Standard risk measures in financial risk management.
-    """
     end_date = datetime.datetime.now()
     start_date = end_date - datetime.timedelta(days=300)
 
