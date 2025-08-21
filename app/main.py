@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import pandas as pd
 from flask import Flask, jsonify, request
 from flask_cors import CORS
@@ -93,7 +95,11 @@ def mc_sim(ticker):
     - CVaR: Expected loss in the worst-case (tail) scenarios.
     """
     try:
-        result = mc_simulation(ticker)
+        start_date = request.args.get("start_date")
+        end_date = request.args.get("end_date")
+        start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
+        end_date_dt = datetime.strptime(end_date, "%Y-%m-%d")
+        result = mc_simulation(ticker, start_date_dt, end_date_dt)
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500

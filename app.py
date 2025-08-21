@@ -57,7 +57,7 @@ if submitted:
 
         # === Monte Carlo Simulation ===
         mc_container.subheader("🎲 Monte Carlo Simulation")
-        r3 = get_request(f"http://localhost:8000/api/monte-carlo-sim/{ticker}")
+        r3 = get_request(f"http://localhost:8000/api/monte-carlo-sim/{ticker}?start_date={start_date}&end_date={end_date}")
         sim_result = r3.json()
         sim_data = np.array(sim_result["simulations"])
 
