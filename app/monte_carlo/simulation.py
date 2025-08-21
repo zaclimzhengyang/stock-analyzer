@@ -26,7 +26,7 @@ def mc_cvar(returns: pd.Series, alpha=5):
     return returns[returns <= var].mean()
 
 
-def mc_simulation(ticker: str) -> dict:
+def mc_simulation(ticker: str, start_date: datetime, end_date: datetime) -> dict:
     """
     Run a Monte Carlo simulation for a given ticker.
 
@@ -37,7 +37,7 @@ def mc_simulation(ticker: str) -> dict:
     - Monte Carlo simulation: Randomly generates price paths to estimate risk.
     end_date = datetime.datetime.now()
     start_date = end_date - datetime.timedelta(days=300)
-
+    """
     mean_returns, cov_matrix = downloader.get_mean_returns_cov_matrix(
         ticker, start_date, end_date
     )

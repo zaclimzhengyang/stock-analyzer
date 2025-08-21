@@ -5,6 +5,9 @@ import requests
 import yfinance as yf
 import pandas as pd
 
+from constants import treasury_fred_series
+from pandas_datareader import data as pdr
+
 
 def get_price_data(ticker, start_date="2025-01-01", end_date="2025-06-01"):
     """
@@ -17,7 +20,7 @@ def get_price_data(ticker, start_date="2025-01-01", end_date="2025-06-01"):
 
 
 def get_mean_returns_cov_matrix(
-    stocks: Union[list[str], str], start: datetime, end: datetime
+        stocks: Union[list[str], str], start: datetime, end: datetime
 ) -> tuple[pd.Series, pd.DataFrame]:
     """
     Calculate mean daily returns and covariance matrix for given stocks.
@@ -113,3 +116,24 @@ def fetch_nasdaq_companies(limit: int = 100) -> pd.DataFrame:
     df = df.dropna(subset=["marketCap"])
     df = df.sort_values("marketCap", ascending=False).head(limit)
     return df
+
+
+# 3. Download yield data for current and historical dates
+def get_treasury_yield_curve(date):
+    yields = {}
+
+    for label, code in treasury_fred_series.items():
+        try:
+            val = pdr.DataReader(code, "fred", date, date).iloc[0, 0]
+            yields[label] = val
+        except Exception:
+            yields[label] = None
+    return yields
+
+
+def get_stock_data(ticker: str):
+    """Fetch stock data using yfinance"""
+    stock = yf.Ticker(ticker)
+    if not stock.info:
+        raise ValueError(f"Ticker {ticker} not found or no data available.")
+    return stock
