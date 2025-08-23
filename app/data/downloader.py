@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Union
+from typing import Union, Optional
 import numpy as np
 import requests
 import yfinance as yf
@@ -20,7 +20,7 @@ def get_price_data(ticker, start_date="2025-01-01", end_date="2025-06-01"):
 
 
 def get_mean_returns_cov_matrix(
-        stocks: Union[list[str], str], start: datetime, end: datetime
+    stocks: Union[list[str], str], start: datetime, end: datetime
 ) -> tuple[pd.Series, pd.DataFrame]:
     """
     Calculate mean daily returns and covariance matrix for given stocks.
@@ -137,3 +137,12 @@ def get_stock_data(ticker: str):
     if not stock.info:
         raise ValueError(f"Ticker {ticker} not found or no data available.")
     return stock
+
+
+def download_data(ticker: str, start: str, end: Optional[str]) -> pd.DataFrame:
+    data = yf.download(ticker, start=start, end=end)
+    if data.empty:
+        raise ValueError(f"No data found for {ticker}")
+    if isinstance(data.columns, pd.MultiIndex):
+        data.columns = data.columns.get_level_values(0)
+    return data
