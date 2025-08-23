@@ -1,10 +1,10 @@
 from datetime import datetime
 
-import pandas as pd
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 from app.backtest.backtest import get_backtest
+from app.black_scholes.black_scholes_option_pricer import bsop
 from app.data.downloader import get_price_data, get_fundamentals
 from app.factors.momentum import generate_signals, generate_momentum_score
 from app.monte_carlo.simulation import mc_simulation
@@ -177,6 +177,25 @@ def drawdown(ticker):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+@app.route("/api/black-scholes-model/<ticker>", methods=["GET"])
+def bsm(ticker):
+    try:
+        bsm = bsop(ticker)
+        result = bsm[["contractSymbol", "bsmValuation", "delta", "gamma", "vega", "theta", "rho"]]
+
+        response = {
+            "Contract Symbol": result["contractSymbol"].tolist(),
+            "BSM Valuation": result["bsmValuation"].tolist(),
+            "Delta": result["delta"].tolist(),
+            "Gamma": result["gamma"].tolist(),
+            "Vega": result["vega"].tolist(),
+            "Theta": result["theta"].tolist(),
+            "Rho": result["rho"].tolist()
+        }
+        return jsonify(response)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True, port=8000)
