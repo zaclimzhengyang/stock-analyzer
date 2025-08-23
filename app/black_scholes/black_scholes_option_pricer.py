@@ -145,8 +145,7 @@ def calculate_volatility(ticker: str) -> float:
     return annualized_volatility
 
 
-if __name__ == "__main__":
-    ticker = "AAPL"
+def bsop(ticker: str) -> pd.DataFrame:
     stock = get_stock_data(ticker)
 
     # Spot price
@@ -177,6 +176,7 @@ if __name__ == "__main__":
     main_df = calls.copy()
     columns_to_drop = ['lastTradeDate', 'lastPrice', 'volume', 'openInterest', 'contractSize', 'currency']
     main_df.drop(columns=columns_to_drop, inplace=True)
+    main_df['spotPrice'] = S
     main_df['bsmValuation'] = main_df.apply(lambda row: bs_call_price(S, row['strike'], t, r, vol), axis=1)
     main_df.head(10)
 
@@ -188,3 +188,5 @@ if __name__ == "__main__":
     greeks_df['rho'] = greeks_df.apply(lambda row: rho(S, row['strike'], t, r, vol, "call"), axis=1)
 
     print(greeks_df.head(10))
+
+    return greeks_df

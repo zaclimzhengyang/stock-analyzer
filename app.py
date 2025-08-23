@@ -25,6 +25,7 @@ if submitted:
 
     # Create placeholders so content can be shown side-by-side or section-by-section
     fundamentals_container = st.container()
+    bsm_container = st.container()
     backtest_container = st.container()
     mc_container = st.container()
 
@@ -44,7 +45,18 @@ if submitted:
 
         fundamentals_container.table(fundamentals_df)
 
+        # === Black Scholes Model ===
+        bsm_container.subheader("Black Scholes Model")
+        bsm_r = get_request(
+            f"http://localhost:8000/api/black-scholes-model/{ticker}"
+        )
+        bsm_data = bsm_r.json()
+
+        bsm_df = pd.DataFrame(bsm_data)
+        bsm_container.table(bsm_df)
+
         # === Backtest Data ===
+        backtest_container = st.container()
         backtest_container.subheader("📈 Backtest")
         r2 = get_request(
             f"http://localhost:8000/api/backtest/{ticker}?start_date={start_date}&end_date={end_date}"
@@ -57,7 +69,8 @@ if submitted:
 
         # === Monte Carlo Simulation ===
         mc_container.subheader("🎲 Monte Carlo Simulation")
-        r3 = get_request(f"http://localhost:8000/api/monte-carlo-sim/{ticker}?start_date={start_date}&end_date={end_date}")
+        r3 = get_request(
+            f"http://localhost:8000/api/monte-carlo-sim/{ticker}?start_date={start_date}&end_date={end_date}")
         sim_result = r3.json()
         sim_data = np.array(sim_result["simulations"])
 
