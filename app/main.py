@@ -4,6 +4,8 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 from app.backtest.backtest import get_backtest
+from app.back_trader.analyzer import backtrader_analyze
+from app.back_trader.models import RunSettings
 from app.black_scholes.black_scholes_option_pricer import bsop
 from app.data.downloader import get_price_data, get_fundamentals
 from app.factors.momentum import generate_signals, generate_momentum_score
@@ -182,7 +184,9 @@ def drawdown(ticker):
 def bsm(ticker):
     try:
         bsm = bsop(ticker)
-        result = bsm[["contractSymbol", "bsmValuation", "delta", "gamma", "vega", "theta", "rho"]]
+        result = bsm[
+            ["contractSymbol", "bsmValuation", "delta", "gamma", "vega", "theta", "rho"]
+        ]
 
         response = {
             "Contract Symbol": result["contractSymbol"].tolist(),
@@ -191,11 +195,36 @@ def bsm(ticker):
             "Gamma": result["gamma"].tolist(),
             "Vega": result["vega"].tolist(),
             "Theta": result["theta"].tolist(),
-            "Rho": result["rho"].tolist()
+            "Rho": result["rho"].tolist(),
         }
         return jsonify(response)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/backtrader/<ticker>", methods=["GET"])
+def backtrader(ticker):
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+    settings = RunSettings(
+        tickers=[ticker],
+        start=start_date,
+        end=end_date,
+        cash=100000,
+        commission=0.0005,
+        slippage=0.0002,
+        fast=50,
+        slow=200,
+        rsi_buy=30,
+        rsi_sell=70,
+        out="results"
+    )
+    try:
+        analysis = backtrader_analyze(settings)
+        return jsonify(analysis)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == "__main__":
     app.run(debug=True, port=8000)

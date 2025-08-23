@@ -25,6 +25,7 @@ if submitted:
 
     # Create placeholders so content can be shown side-by-side or section-by-section
     fundamentals_container = st.container()
+    backtrader_container = st.container()
     bsm_container = st.container()
     backtest_container = st.container()
     mc_container = st.container()
@@ -45,11 +46,31 @@ if submitted:
 
         fundamentals_container.table(fundamentals_df)
 
+        # === Backtrader Backtest Results ===
+        backtrader_container.subheader("📈 Backtrader Backtest (1st jan 2020 - 1st jan 2025)")
+        bt = get_request(
+            # f"http://localhost:8000/api/backtrader/{ticker}?start_date={start_date}&end_date={end_date}"
+            f"http://localhost:8000/api/backtrader/{ticker}?start_date=2020-01-01&end_date=2025-01-01"
+        )
+        backtest_data = bt.json()
+
+        # Convert nested dictionary to DataFrame for display
+        # Example structure: {'AAPL': {'Momentum_FinalValue': ..., 'Momentum_CAGR': ...}}
+        bt_df = pd.DataFrame(backtest_data).T  # transpose to have strategies as columns
+        bt_df.index.name = "Ticker"
+        backtrader_container.table(bt_df)
+
+        # Optionally display final portfolio value and CAGR for Momentum and MeanReversion
+        for strategy in ["Momentum", "MeanRev"]:
+            final_val = bt_df[f"{strategy}_FinalValue"].iloc[0]
+            cagr = bt_df[f"{strategy}_CAGR"].iloc[0]
+            backtrader_container.success(
+                f"{strategy} Strategy → Final Portfolio Value: ${final_val:,.2f}, CAGR: {cagr:.2%}"
+            )
+
         # === Black Scholes Model ===
         bsm_container.subheader("Black Scholes Model")
-        bsm_r = get_request(
-            f"http://localhost:8000/api/black-scholes-model/{ticker}"
-        )
+        bsm_r = get_request(f"http://localhost:8000/api/black-scholes-model/{ticker}")
         bsm_data = bsm_r.json()
 
         bsm_df = pd.DataFrame(bsm_data)
@@ -70,7 +91,8 @@ if submitted:
         # === Monte Carlo Simulation ===
         mc_container.subheader("🎲 Monte Carlo Simulation")
         r3 = get_request(
-            f"http://localhost:8000/api/monte-carlo-sim/{ticker}?start_date={start_date}&end_date={end_date}")
+            f"http://localhost:8000/api/monte-carlo-sim/{ticker}?start_date={start_date}&end_date={end_date}"
+        )
         sim_result = r3.json()
         sim_data = np.array(sim_result["simulations"])
 

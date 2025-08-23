@@ -30,12 +30,12 @@ print(f"Annualized Volatility: {annualized_volatility:.2%}")
 print(f"Sharpe Ratio: {sharpe_ratio:.2f}")
 
 # 5. Plot histogram of returns and normal distribution
-plt.figure(figsize=(10,6))
+plt.figure(figsize=(10, 6))
 plt.hist(returns, bins=50, density=True, alpha=0.6, label="S&P 500 Returns")
 mu, std = norm.fit(returns)
 xmin, xmax = plt.xlim()
 x = np.linspace(xmin, xmax, 100)
-plt.plot(x, norm.pdf(x, mu, std), 'r', label="Normal Distribution")
+plt.plot(x, norm.pdf(x, mu, std), "r", label="Normal Distribution")
 plt.title("S&P 500 Daily Returns Histogram")
 plt.xlabel("Daily Return")
 plt.ylabel("Density")
@@ -44,4 +44,3 @@ plt.show()
 
 # 6. Short write-up (markdown cell)
 # ...existing code...
-
