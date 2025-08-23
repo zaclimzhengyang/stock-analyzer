@@ -48,6 +48,7 @@ def _d2(S: float, K: float, t: float, r: float, vol: float) -> float:
 # Black-Scholes Pricing
 # -------------------------
 
+
 def bs_call_price(S: float, K: float, t: float, r: float, vol: float) -> float:
     """Black-Scholes-Merton option price"""
     d1 = _d1(S, K, t, r, vol)
@@ -70,7 +71,10 @@ def bs_put_price(S: float, K: float, t: float, r: float, vol: float) -> float:
 # Greeks
 # -------------------------
 
-def delta(S: float, K: float, T: float, r: float, vol: float, option: Literal["call", "put"]) -> float:
+
+def delta(
+    S: float, K: float, T: float, r: float, vol: float, option: Literal["call", "put"]
+) -> float:
     d1 = _d1(S, K, T, r, vol)
     if option == "call":
         return _standard_normal_cdf(d1)
@@ -96,9 +100,13 @@ def theta(S, K, t, r, vol, option: Literal["call", "put"]) -> float:
     numerator = S * _standard_normal_pdf(d1) * vol
     denominator = 2 * math.sqrt(t)
     if option == "call":
-        return -1 * (numerator / denominator) - r * K * pow(math.e, -1 * r * t) * _standard_normal_cdf(d2)
+        return -1 * (numerator / denominator) - r * K * pow(
+            math.e, -1 * r * t
+        ) * _standard_normal_cdf(d2)
     else:
-        return -1 * (numerator / denominator) + r * K * pow(math.e, -1 * r * t) * _standard_normal_cdf(-1 * d2)
+        return -1 * (numerator / denominator) + r * K * pow(
+            math.e, -1 * r * t
+        ) * _standard_normal_cdf(-1 * d2)
 
 
 def rho(S, K, t, r, vol, option: Literal["call", "put"]) -> float:
@@ -117,7 +125,7 @@ def get_10yr_treasury_rate():
     ten_years_ago = now.replace(year=now.year - 10)
 
     treasury_data = yf.download(treasury_ticker, start=ten_years_ago, end=now)
-    last_yield = treasury_data['Close'].iloc[-1]
+    last_yield = treasury_data["Close"].iloc[-1]
     return float(last_yield.iloc[0]) / 100
 
 
@@ -136,10 +144,10 @@ def calculate_volatility(ticker: str) -> float:
     data = yf.download(ticker, start=one_year_ago, end=today)
 
     # Calculate daily returns
-    data['Daily_Return'] = data['Close'].pct_change()
+    data["Daily_Return"] = data["Close"].pct_change()
 
     # std of daily returns
-    daily_volatility = data['Daily_Return'].std()
+    daily_volatility = data["Daily_Return"].std()
     annualized_volatility = daily_volatility * np.sqrt(252)
 
     return annualized_volatility
@@ -161,7 +169,9 @@ def bsop(ticker: str) -> pd.DataFrame:
     r = get_10yr_treasury_rate()  # <-- risk-free from US Treasury
     vol = calculate_volatility(ticker)
 
-    print(f"Spot price: {S}, Volatility: {vol}, Time to expiry: {t}, Risk-free rate: {r}")
+    print(
+        f"Spot price: {S}, Volatility: {vol}, Time to expiry: {t}, Risk-free rate: {r}"
+    )
     if any(map(lambda x: x is None or np.isnan(x) or x == 0, [S, vol, t, r])):
         raise ValueError("One or more input values are invalid (NaN or zero).")
 
@@ -174,18 +184,37 @@ def bsop(ticker: str) -> pd.DataFrame:
 
     # Compute theoretical price
     main_df = calls.copy()
-    columns_to_drop = ['lastTradeDate', 'lastPrice', 'volume', 'openInterest', 'contractSize', 'currency']
+    columns_to_drop = [
+        "lastTradeDate",
+        "lastPrice",
+        "volume",
+        "openInterest",
+        "contractSize",
+        "currency",
+    ]
     main_df.drop(columns=columns_to_drop, inplace=True)
-    main_df['spotPrice'] = S
-    main_df['bsmValuation'] = main_df.apply(lambda row: bs_call_price(S, row['strike'], t, r, vol), axis=1)
+    main_df["spotPrice"] = S
+    main_df["bsmValuation"] = main_df.apply(
+        lambda row: bs_call_price(S, row["strike"], t, r, vol), axis=1
+    )
     main_df.head(10)
 
     greeks_df = main_df.copy()
-    greeks_df['delta'] = greeks_df.apply(lambda row: delta(S, row['strike'], t, r, vol, "call"), axis=1)
-    greeks_df['gamma'] = greeks_df.apply(lambda row: gamma(S, row['strike'], t, r, vol), axis=1)
-    greeks_df['vega'] = greeks_df.apply(lambda row: vega(S, row['strike'], t, r, vol), axis=1)
-    greeks_df['theta'] = greeks_df.apply(lambda row: theta(S, row['strike'], t, r, vol, "call"), axis=1)
-    greeks_df['rho'] = greeks_df.apply(lambda row: rho(S, row['strike'], t, r, vol, "call"), axis=1)
+    greeks_df["delta"] = greeks_df.apply(
+        lambda row: delta(S, row["strike"], t, r, vol, "call"), axis=1
+    )
+    greeks_df["gamma"] = greeks_df.apply(
+        lambda row: gamma(S, row["strike"], t, r, vol), axis=1
+    )
+    greeks_df["vega"] = greeks_df.apply(
+        lambda row: vega(S, row["strike"], t, r, vol), axis=1
+    )
+    greeks_df["theta"] = greeks_df.apply(
+        lambda row: theta(S, row["strike"], t, r, vol, "call"), axis=1
+    )
+    greeks_df["rho"] = greeks_df.apply(
+        lambda row: rho(S, row["strike"], t, r, vol, "call"), axis=1
+    )
 
     print(greeks_df.head(10))
 
