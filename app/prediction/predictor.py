@@ -53,7 +53,9 @@ class StockPredictor:
         df["MA50"] = df["Close"].rolling(window=50).mean()
         df["Volatility"] = df["Close"].rolling(window=10).std()
         df["FutureReturn"] = df["Close"].shift(-5) / df["Close"] - 1
-        df["Signal"] = (df["FutureReturn"] > 0.02).astype(int) # Buy if expected 5-day return > 2%
+        df["Signal"] = (df["FutureReturn"] > 0.02).astype(
+            int
+        )  # Buy if expected 5-day return > 2%
         df["Volume_Change"] = df["Volume"].pct_change()
         df["Momentum"] = df["Close"] - df["Close"].shift(10)
         # df["RSI"] = RSIIndicator(close=df["Close"], window=14).rsi()

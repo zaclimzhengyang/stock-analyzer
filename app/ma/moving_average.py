@@ -49,16 +49,26 @@ for i in range(len(data)):
 data["Portfolio"] = pd.Series(portfolio_values, index=data.index)
 
 # 6. Plot equity curve
-plt.figure(figsize=(12,6))
+plt.figure(figsize=(12, 6))
 plt.plot(close, label="Price")
 plt.plot(data["SMA_short"], label="50d SMA")
 plt.plot(data["SMA_long"], label="200d SMA")
-plt.plot(data.loc[data["Signal"]==1].index,
-         close[data["Signal"]==1],
-         "^", markersize=10, color="g", label="Buy")
-plt.plot(data.loc[data["Signal"]==0].index,
-         close[data["Signal"]==0],
-         "v", markersize=10, color="r", label="Sell")
+plt.plot(
+    data.loc[data["Signal"] == 1].index,
+    close[data["Signal"] == 1],
+    "^",
+    markersize=10,
+    color="g",
+    label="Buy",
+)
+plt.plot(
+    data.loc[data["Signal"] == 0].index,
+    close[data["Signal"] == 0],
+    "v",
+    markersize=10,
+    color="r",
+    label="Sell",
+)
 plt.legend()
 plt.show()
 
