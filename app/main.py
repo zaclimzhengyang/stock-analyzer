@@ -1,7 +1,11 @@
+import base64
+import io
+
 from datetime import datetime
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from matplotlib import pyplot as plt
 
 from app.backtest.backtest import get_backtest
 from app.back_trader.analyzer import backtrader_analyze
@@ -11,6 +15,7 @@ from app.data.downloader import get_price_data, get_fundamentals
 from app.factors.momentum import generate_signals, generate_momentum_score
 from app.monte_carlo.simulation import mc_simulation
 from app.prediction.predictor import StockPredictor, scan_top_nasdaq
+from app.probability_density_function.pdf import pdf
 
 app = Flask(__name__)
 CORS(app)
@@ -222,6 +227,30 @@ def backtrader(ticker):
     try:
         analysis = backtrader_analyze(settings)
         return jsonify(analysis)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/pdf/<ticker>", methods=["GET"])
+def probability_density_function(ticker):
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+    try:
+        fig, analysis = pdf(ticker, start_date, end_date)  # pdf() now returns (fig, stats)
+
+        # Save figure to in-memory buffer
+        buf = io.BytesIO()
+        fig.savefig(buf, format="png", bbox_inches="tight")
+        buf.seek(0)
+        plt.close(fig)
+
+        # Encode image as base64 string
+        img_base64 = base64.b64encode(buf.read()).decode("utf-8")
+
+        return jsonify({
+            "stats": analysis,
+            "plot": img_base64
+        })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
