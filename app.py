@@ -1,8 +1,11 @@
+import os
+
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import requests
 import streamlit as st
+from PIL import Image
 from matplotlib import pyplot as plt
 
 
@@ -25,6 +28,7 @@ if submitted:
 
     # Create placeholders so content can be shown side-by-side or section-by-section
     fundamentals_container = st.container()
+    pdf_container = st.container()
     backtrader_container = st.container()
     bsm_container = st.container()
     backtest_container = st.container()
@@ -45,6 +49,29 @@ if submitted:
         fundamentals_df.index.name = "Metric"
 
         fundamentals_container.table(fundamentals_df)
+
+        # === PDF Analysis ===
+        pdf_container.subheader("📊 Probability Density Function Analysis")
+        r_pdf = get_request(
+            f"http://localhost:8000/api/pdf/{ticker}?start_date={start_date}&end_date={end_date}"
+        )
+        pdf_data = r_pdf.json()
+
+        # Display stats in table
+        pdf_df = pd.DataFrame.from_dict(pdf_data["stats"], orient="index", columns=["Value"])
+        pdf_df.index.name = "Metric"
+        pdf_container.table(pdf_df)
+
+        # Display plot directly (decode base64 to image)
+        import base64
+        from io import BytesIO
+        from PIL import Image
+
+        if "plot" in pdf_data:
+            img_bytes = base64.b64decode(pdf_data["plot"])
+            img = Image.open(BytesIO(img_bytes))
+            pdf_container.image(img, caption="PDF Plot")
+
 
         # === Backtrader Backtest Results ===
         backtrader_container.subheader("📈 Backtrader Backtest (1st jan 2020 - 1st jan 2025)")
