@@ -16,6 +16,7 @@ from app.factors.momentum import generate_signals, generate_momentum_score
 from app.monte_carlo.simulation import mc_simulation
 from app.prediction.predictor import StockPredictor, scan_top_nasdaq
 from app.probability_density_function.pdf import pdf
+from app.survivorship_bias.survivorship_bias import survivorship_bias_summary_plot
 
 app = Flask(__name__)
 CORS(app)
@@ -249,6 +250,28 @@ def probability_density_function(ticker):
 
         return jsonify({
             "stats": analysis,
+            "plot": img_base64
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/survivorship-bias/sp500", methods=["GET"])
+def survivorship_bias():
+    try:
+        summary, fig = survivorship_bias_summary_plot()
+
+        # Save figure to in-memory buffer
+        buf = io.BytesIO()
+        fig.savefig(buf, format="png", bbox_inches="tight")
+        buf.seek(0)
+        plt.close(fig)
+
+        # Encode image as base64 string
+        img_base64 = base64.b64encode(buf.read()).decode("utf-8")
+
+        return jsonify({
+            "summary": summary,
             "plot": img_base64
         })
     except Exception as e:

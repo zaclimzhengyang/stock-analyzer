@@ -72,7 +72,6 @@ if submitted:
             img = Image.open(BytesIO(img_bytes))
             pdf_container.image(img, caption="PDF Plot")
 
-
         # === Backtrader Backtest Results ===
         backtrader_container.subheader("📈 Backtrader Backtest (1st jan 2020 - 1st jan 2025)")
         bt = get_request(
@@ -185,6 +184,41 @@ if submitted:
 
         # Show max drawdown in text
         mc_container.success(f"Max Drawdown: {drawdown_result['max_drawdown']:.2%}")
+
+        # === Survivorship Bias ===
+        survivorship_container = st.container()
+        survivorship_container.subheader("Survivorship Bias: S&P500 vs SPY")
+        survivorship_r = get_request("http://localhost:8000/api/survivorship-bias/sp500")
+        survivorship_data = survivorship_r.json()
+
+        # Display summary metrics
+        summary = survivorship_data["summary"]
+
+        rows = [
+            {
+                "Portfolio": summary["Portfolio (Current)"],
+                "CAGR": summary["CAGR (Current)"],
+                "Vol": summary["Vol (Current)"],
+                "Sharpe": summary["Sharpe (Current)"],
+                "Max Drawdown": summary["Max Drawdown (Current)"],
+            },
+            {
+                "Portfolio": summary["Portfolio"],
+                "CAGR": summary["CAGR"],
+                "Vol": summary["Vol"],
+                "Sharpe": summary["Sharpe"],
+                "Max Drawdown": summary["Max Drawdown"],
+            },
+        ]
+
+        df = pd.DataFrame(rows)
+        df = df.set_index("Portfolio")
+        st.table(df)
+
+        # Display plot
+        img_bytes = base64.b64decode(survivorship_data["plot"])
+        img = Image.open(BytesIO(img_bytes))
+        st.image(img, caption="Survivorship Bias Demo: $1 Growth (2000-Present)")
 
     except Exception as e:
         st.error(f"One or more analyses failed: {e}")
