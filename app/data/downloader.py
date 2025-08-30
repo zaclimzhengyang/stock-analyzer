@@ -20,7 +20,7 @@ def get_price_data(ticker, start_date="2025-01-01", end_date="2025-06-01"):
 
 
 def get_mean_returns_cov_matrix(
-    stocks: Union[list[str], str], start: datetime, end: datetime
+        stocks: Union[list[str], str], start: datetime, end: datetime
 ) -> tuple[pd.Series, pd.DataFrame]:
     """
     Calculate mean daily returns and covariance matrix for given stocks.
@@ -146,3 +146,23 @@ def download_data(ticker: str, start: str, end: Optional[str]) -> pd.DataFrame:
     if isinstance(data.columns, pd.MultiIndex):
         data.columns = data.columns.get_level_values(0)
     return data
+
+
+def get_sp500_tickers() -> list[str]:
+    url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+    resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
+    tables = pd.read_html(resp.text)
+    table = tables[0]
+    tickers = table["Symbol"].str.replace(".", "-", regex=False).tolist()
+    print(f'Found {len(tickers)} tickers from Wikipedia S&P500 list')
+    return sorted(set(tickers))
+
+
+def download_prices(tickers, start="2020-01-01", end=None):
+    data = yf.download(tickers, start=start, end=end, progress=False, group_by="ticker", auto_adjust=False)
+    if "Adj Close" in data.columns:
+        df = data["Adj Close"]
+    else:
+        df = data.loc[:, (slice(None), "Adj Close")]
+        df.columns = [c[0] for c in df.columns]
+    return df
