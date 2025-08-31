@@ -6,8 +6,8 @@ from pmdarima import auto_arima
 
 # 1. Load data (example: Apple stock closing prices)
 ticker = "AAPL"
-data = yf.download(ticker, start="2020-01-01", end=None)
-ts = data["Close"]
+data = yf.download(ticker, start="2020-01-01", end=None, auto_adjust=False)
+ts = data["Adj Close"]
 
 # 2. Fit ARIMA model
 # Order = (p, d, q) -> you can tune these values
