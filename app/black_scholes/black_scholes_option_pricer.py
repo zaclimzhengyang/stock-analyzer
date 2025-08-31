@@ -124,8 +124,8 @@ def get_10yr_treasury_rate():
     now = datetime.now()
     ten_years_ago = now.replace(year=now.year - 10)
 
-    treasury_data = yf.download(treasury_ticker, start=ten_years_ago, end=now)
-    last_yield = treasury_data["Close"].iloc[-1]
+    treasury_data = yf.download(treasury_ticker, start=ten_years_ago, end=now, auto_adjust=False)
+    last_yield = treasury_data["Adj Close"].iloc[-1]
     return float(last_yield.iloc[0]) / 100
 
 
@@ -141,10 +141,10 @@ def get_options_data(stock, expiry: str):
 def calculate_volatility(ticker: str) -> float:
     today = datetime.now()
     one_year_ago = today.replace(year=today.year - 1)
-    data = yf.download(ticker, start=one_year_ago, end=today)
+    data = yf.download(ticker, start=one_year_ago, end=today, auto_adjust=False)
 
     # Calculate daily returns
-    data["Daily_Return"] = data["Close"].pct_change()
+    data["Daily_Return"] = data["Adj Close"].pct_change()
 
     # std of daily returns
     daily_volatility = data["Daily_Return"].std()

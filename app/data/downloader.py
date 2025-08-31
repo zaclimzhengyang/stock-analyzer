@@ -15,7 +15,7 @@ def get_price_data(ticker, start_date="2025-01-01", end_date="2025-06-01"):
 
     Returns a DataFrame with OHLCV data.
     """
-    data = yf.download(tickers=[ticker], start=start_date, end=end_date)
+    data = yf.download(tickers=[ticker], start=start_date, end=end_date, auto_adjust=False)
     return data
 
 
@@ -29,7 +29,7 @@ def get_mean_returns_cov_matrix(
     - Mean returns: Average daily return for each stock.
     - Covariance matrix: Measures how returns of stocks move together.
     """
-    stock_data = yf.download(stocks, start, end)["Close"]
+    stock_data = yf.download(tickers=stocks, start=start, end=end, auto_adjust=False)["Adj Close"]
     returns = stock_data.pct_change()
     mean_returns = returns.mean()
     cov_matrix = returns.cov()
@@ -60,7 +60,7 @@ def get_fundamentals(ticker: str, price_data: pd.DataFrame):
         float(info.get("marketCap")) if info.get("marketCap") else None
     )
 
-    daily_returns = price_data["Close"].pct_change()
+    daily_returns = price_data["Adj Close"].pct_change()
 
     mean_daily_return = daily_returns.mean().iloc[0]
     std_daily_return = daily_returns.std().iloc[0]
@@ -71,8 +71,8 @@ def get_fundamentals(ticker: str, price_data: pd.DataFrame):
     risk_free_rate = 0.045
     sharpe_ratio = (annualized_return - risk_free_rate) / annualized_volatility
 
-    rolling_max = price_data["Close"].cummax()
-    drawdown = price_data["Close"] / rolling_max - 1
+    rolling_max = price_data["Adj Close"].cummax()
+    drawdown = price_data["Adj Close"] / rolling_max - 1
     max_drawdown = float(drawdown.min().min())
 
     return {
@@ -140,7 +140,7 @@ def get_stock_data(ticker: str):
 
 
 def download_data(ticker: str, start: str, end: Optional[str]) -> pd.DataFrame:
-    data = yf.download(ticker, start=start, end=end)
+    data = yf.download(ticker, start=start, end=end, auto_adjust=False)
     if data.empty:
         raise ValueError(f"No data found for {ticker}")
     if isinstance(data.columns, pd.MultiIndex):

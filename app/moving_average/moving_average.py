@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 
 # 2. Download S&P 500 data
 ticker = "AAPL"
-data = yf.download(ticker, start="2010-01-01", end=None)
-close = data["Close"]
+data = yf.download(ticker, start="2010-01-01", end=None, auto_adjust=False)
+close = data["Adj Close"]
 
 # 3. Compute short and long moving averages
 short_window = 50

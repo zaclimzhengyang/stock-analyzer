@@ -71,7 +71,7 @@ def backtest(ticker):
         end_date = request.args.get("end_date")
 
         price_data = get_price_data(ticker, start_date, end_date)
-        close_prices = price_data[("Close", ticker)]
+        close_prices = price_data[("Adj Close", ticker)]
 
         signals = generate_signals(close_prices)
 
@@ -171,7 +171,7 @@ def drawdown(ticker):
         price_df = get_price_data(ticker, start_date, end_date)
         dates = price_df.index.strftime("%Y-%m-%d").tolist()
 
-        drawdown = price_df["Close"] / price_df["Close"].cummax() - 1
+        drawdown = price_df["Adj Close"] / price_df["Adj Close"].cummax() - 1
         drawdown_list = drawdown[ticker].tolist()
         max_drawdown = drawdown.min()
 

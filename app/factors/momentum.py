@@ -22,11 +22,11 @@ def generate_momentum_score(price_df: pd.DataFrame) -> Optional[float]:
     Financial Description:
     - Moving average crossover is a classic trend-following strategy.
     """
-    if "Close" not in price_df.columns or price_df.empty:
+    if "Adj Close" not in price_df.columns or price_df.empty:
         return None
     idx = max(0, len(price_df) - 60)
     try:
-        ret = price_df["Close"].iloc[-1] / price_df["Close"].iloc[idx] - 1
+        ret = price_df["Adj Close"].iloc[-1] / price_df["Adj Close"].iloc[idx] - 1
         return round(float(ret), 4)
     except (KeyError, ZeroDivisionError, IndexError):
         return None
