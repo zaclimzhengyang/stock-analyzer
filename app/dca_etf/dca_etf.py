@@ -45,15 +45,12 @@ def first_trading_days(prices):
     return dates
 
 
-def run_dca(ticker):
+def run_dca_from_prices(ticker, all_prices):
     try:
-        df = yf.download(
-            ticker,
-            start=(START_DATE + dt.timedelta(days=-1)).strftime("%Y-%m-%d"),
-            end=(END_DATE + dt.timedelta(days=1)).strftime("%Y-%m-%d"),
-            progress=False,
-            auto_adjust=False
-        )
+        if ticker not in all_prices.columns.get_level_values(0):
+            return None
+
+        df = all_prices[ticker]
         if "Adj Close" not in df.columns or df["Adj Close"].dropna().empty:
             return None
 
@@ -92,12 +89,27 @@ def run_dca(ticker):
         return None
 
 
-def main():
-    s = get_from_nyse_excel()
-    print("Total unique tickers from nyse excel:", len(s))
+def download_all_prices(tickers):
+    """Download all tickers at once into a multi-index DataFrame."""
+    df = yf.download(
+        tickers,
+        start=(START_DATE + dt.timedelta(days=-1)).strftime("%Y-%m-%d"),
+        end=(END_DATE + dt.timedelta(days=1)).strftime("%Y-%m-%d"),
+        progress=False,
+        auto_adjust=False,
+        group_by="ticker"
+    )
+    return df
 
+
+def main():
+    start_time = dt.datetime.now()
+    s = get_from_nyse_excel()
     s = s - set(TICKERS_TO_SKIP)
-    print("Total unique tickers to process:", len(s))
+    print("Tickers to process:", len(s))
+
+    # Download all at once
+    all_prices = download_all_prices(list(s))
 
     # For testing purpose
     # s = list(s)[:500]
@@ -105,7 +117,7 @@ def main():
 
     results = []
     for t in tqdm(sorted(s), desc="DCA backtests"):
-        res = run_dca(t)
+        res = run_dca_from_prices(t, all_prices)
         if res:
             total = res["invested"]
             fin = res["final"]
@@ -155,6 +167,8 @@ def main():
     plt.tight_layout()
     plt.savefig(OUTPUT_PNG, dpi=150)
     plt.show()
+    end_time = dt.datetime.now()
+    print("time taken:", end_time - start_time) # 0:00:38.018433
 
 
 if __name__ == "__main__":
