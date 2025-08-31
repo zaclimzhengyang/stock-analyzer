@@ -12,3 +12,7 @@ statsmodels
 pmdarima
 plotly
 backtrader
+certifi
+lxml
+html5lib
+openpyxl
