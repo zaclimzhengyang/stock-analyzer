@@ -15,4 +15,3 @@ certifi
 lxml
 html5lib
 openpyxl
-pandas_datareader
