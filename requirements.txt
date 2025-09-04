@@ -9,7 +9,6 @@ scipy
 matplotlib
 scikit-learn
 statsmodels
-pmdarima
 plotly
 backtrader
 certifi
