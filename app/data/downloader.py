@@ -6,7 +6,7 @@ import yfinance as yf
 import pandas as pd
 
 from constants import treasury_fred_series
-from pandas_datareader import data as pdr
+# from pandas_datareader import data as pdr
 
 
 def get_price_data(ticker, start_date="2025-01-01", end_date="2025-06-01"):
@@ -124,8 +124,8 @@ def get_treasury_yield_curve(date):
 
     for label, code in treasury_fred_series.items():
         try:
-            val = pdr.DataReader(code, "fred", date, date).iloc[0, 0]
-            yields[label] = val
+            # val = pdr.DataReader(code, "fred", date, date).iloc[0, 0]
+            yields[label] = 0.04 # set to 5% for now
         except Exception:
             yields[label] = None
     return yields
