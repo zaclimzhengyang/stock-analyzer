@@ -2,7 +2,7 @@ import yfinance as yf
 import pandas as pd
 import matplotlib.pyplot as plt
 from statsmodels.tsa.arima.model import ARIMA
-from pmdarima import auto_arima
+# from pmdarima import auto_arima
 
 # 1. Load data (example: Apple stock closing prices)
 ticker = "AAPL"
@@ -34,7 +34,7 @@ plt.show()
 
 ## Auto arima
 # Fit auto_arima model
-model = auto_arima(ts, seasonal=False, trace=True)
+# model = auto_arima(ts, seasonal=False, trace=True)
 forecast_steps = 180
 auto_arima_forecast = model.predict(n_periods=forecast_steps)
 
