@@ -24,6 +24,7 @@ def pdf(ticker: str, start_date: str, end_date: str):
     df = get_price_data(ticker, start_date, end_date)
 
     # Compute log returns (or use simple pct_change)
+    # Measures % changes in price in continuous terms (preferred in finance because returns are additive over time).
     df['log_ret'] = np.log(df['Close']).diff().dropna()
     data = df['log_ret'].dropna().values
 
@@ -40,7 +41,6 @@ def pdf(ticker: str, start_date: str, end_date: str):
     bin_centers = (bins[:-1] + bins[1:]) / 2
 
     # Optional: overlay Gaussian kernel density estimate (KDE) via simple method
-    # (We avoid seaborn as per instructions; we can use scipy gaussian_kde if desired.)
     kde = gaussian_kde(data)
     kde_vals = kde(x)
 
@@ -49,7 +49,7 @@ def pdf(ticker: str, start_date: str, end_date: str):
     s = skew(data)
     k = kurtosis(data, fisher=True)
 
-    # Create figure (instead of saving)
+    # Create figure
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.bar(bin_centers, count, width=(bins[1] - bins[0]), alpha=0.45, label='Empirical (histogram)')
     ax.plot(x, kde_vals, lw=2, label='KDE (empirical)', linestyle='--')
