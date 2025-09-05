@@ -2,7 +2,7 @@ import pandas as pd
 from typing import Optional
 
 
-def generate_momentum_score(price_df: pd.DataFrame) -> Optional[float]:
+def generate_momentum_scores(price_df: pd.DataFrame, windows: list[int] = [30, 60, 90]) -> Optional[dict[int, float]]:
     """
     Calculate the momentum score for a stock.
 
@@ -21,15 +21,23 @@ def generate_momentum_score(price_df: pd.DataFrame) -> Optional[float]:
 
     Financial Description:
     - Moving average crossover is a classic trend-following strategy.
+    - Momentum Score = (Price_today / Price_60_days_ago) - 1
     """
     if "Adj Close" not in price_df.columns or price_df.empty:
         return None
-    idx = max(0, len(price_df) - 60)
-    try:
-        ret = price_df["Adj Close"].iloc[-1] / price_df["Adj Close"].iloc[idx] - 1
-        return round(float(ret), 4)
-    except (KeyError, ZeroDivisionError, IndexError):
-        return None
+
+    scores = {}
+    for w in windows:
+        # If price data has at least 60 rows, it looks 60 days back from the last row.
+        # Else, it just uses the very first row (avoids negative index).
+        idx = max(0, len(price_df) - w)
+        try:
+            ret = price_df["Adj Close"].iloc[-1] / price_df["Adj Close"].iloc[idx] - 1
+            scores[w] = round(float(ret), 4)
+        except (KeyError, ZeroDivisionError, IndexError):
+            return None
+
+    return scores
 
 
 def generate_signals(prices: pd.Series) -> list[int]:
