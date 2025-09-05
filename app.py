@@ -5,7 +5,7 @@ from datetime import datetime
 
 # === Import analysis functions ===
 from app.data.downloader import get_price_data, get_fundamentals
-from app.factors.momentum import generate_momentum_score, generate_signals
+from app.factors.momentum import generate_momentum_scores, generate_signals
 from app.backtest.backtest import get_backtest
 from app.back_trader.analyzer import backtrader_analyze
 from app.back_trader.models import RunSettings
@@ -21,6 +21,7 @@ st.title("📈 Quantitative Stock Analyzer")
 # === Sidebar Inputs ===
 st.sidebar.header("Input Parameters")
 ticker = st.sidebar.text_input("Ticker", "AAPL")
+ticker = ticker.upper().strip()
 start_date = st.sidebar.text_input("Start Date", "2025-01-01")
 end_date = st.sidebar.text_input("End Date", "2025-06-01")
 
@@ -53,8 +54,13 @@ if feature_selected:
             container.subheader("📊 Fundamentals")
             price_data = get_price_data(ticker, start_date, end_date)
             fundamentals = get_fundamentals(ticker, price_data)
-            score = generate_momentum_score(price_data)
-            fundamentals_data = {"Ticker": ticker, "Momentum Score": float(score) if score else None, **fundamentals}
+            scores = generate_momentum_scores(price_data)
+            fundamentals_data = {
+                "Ticker": ticker,
+                "30-Day Momentum": scores[30] if scores else None,
+                "60-Day Momentum": scores[60] if scores else None,
+                "90-Day Momentum": scores[90] if scores else None,
+                **fundamentals}
             container.table(pd.DataFrame.from_dict(fundamentals_data, orient="index", columns=["Value"]))
 
         elif feature_selected == "PDF Analysis":
@@ -109,7 +115,8 @@ if feature_selected:
             df_sim = pd.DataFrame(sim_result["simulations"])
             fig = go.Figure()
             for col in df_sim.columns:
-                fig.add_trace(go.Scatter(x=df_sim.index, y=df_sim[col], mode="lines", line=dict(width=1), showlegend=False))
+                fig.add_trace(
+                    go.Scatter(x=df_sim.index, y=df_sim[col], mode="lines", line=dict(width=1), showlegend=False))
             container.plotly_chart(fig, use_container_width=True)
             container.success(f"5% VaR: ${sim_result['VaR_5']:,.2f}")
             container.success(f"5% CVaR: ${sim_result['CVaR_5']:,.2f}")
