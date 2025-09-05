@@ -1,7 +1,7 @@
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # === Import analysis functions ===
 from app.data.downloader import get_price_data, get_fundamentals
@@ -100,7 +100,8 @@ if feature_selected:
         elif feature_selected == "Momentum Backtest":
             container = st.container()
             container.subheader("📈 Momentum Backtest")
-            close_prices = get_price_data(ticker, start_date, end_date)[("Adj Close", ticker)]
+            extended_start_date = (datetime.strptime(start_date, "%Y-%m-%d") - timedelta(days=500)).strftime("%Y-%m-%d")
+            close_prices = get_price_data(ticker, extended_start_date, end_date)[("Adj Close", ticker)]
             signals = generate_signals(close_prices)
             backtest_result = get_backtest(close_prices, signals)
             container.line_chart(pd.Series(backtest_result))
