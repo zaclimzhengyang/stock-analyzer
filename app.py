@@ -22,9 +22,14 @@ from app.trading_strategies.pair_trading import pair_trading_strategy
 # === Import trading strategies ===
 def run_pair_trading():
     st.subheader("🔗 Pair Trading Strategy (JKHY vs LDOS)")
-    fig = plt.figure()
+
+    # Run your original strategy (this internally calls plt.figure + plt.show())
     pair_trading_strategy()
-    st.pyplot(fig)
+
+    # Instead of plt.show(), Streamlit renders the active figures
+    for fig_num in plt.get_fignums():
+        fig = plt.figure(fig_num)
+        st.pyplot(fig)
 
 
 # === App title ===
