@@ -22,16 +22,24 @@ from app.trading_strategies.pair_trading import pair_trading_strategy
 
 # === Import trading strategies ===
 def run_pair_trading():
-    st.subheader("🔗 Pair Trading Strategy (JKHY vs LDOS)")
+    st.subheader("🔗 Pairs Trading Strategy (JKHY vs LDOS)")
 
     st.markdown("""
-        **Introduction:**  
-        Pair trading is a market-neutral strategy widely used in quantitative finance.  
-        It identifies two historically cointegrated stocks and takes long/short positions 
-        when their spread deviates from the historical equilibrium, aiming to profit 
-        as the spread reverts to the mean.  
+        **What it is:**  
+        Pairs trading is a market-neutral strategy widely used in quantitative finance.  
+        It identifies two stocks that are historically **cointegrated** and takes long/short positions 
+        when their spread deviates from the historical equilibrium.
 
-        In this example, we analyze the pair **JKHY and LDOS**.
+        **Approach:**  
+        - Fetch stock data for the sector and identify cointegrated pairs.  
+        - Compute the spread and z-score of the ratio.  
+        - Generate trading signals based on deviations from the mean.  
+        - Simulate trades and backtest the portfolio.
+
+        **Why it matters:**  
+        - Provides a market-neutral way to potentially profit from mean-reverting relationships.  
+        - Helps understand statistical arbitrage concepts like regression-based hedge ratios and signal generation.  
+        - Visualizes the PnL curve and trade markers to show how the strategy would perform over time.
         """)
 
     pair_trading_strategy()
@@ -103,7 +111,7 @@ st.sidebar.header("Select Analysis")
 features = [
     "Fundamentals",
     "Top 10 performing ETF DCA Backtest (2020-2025)",
-    "Pair Trading",
+    "Pairs Trading",
     # "PDF Analysis",
     # "Backtrader Backtest",
     # "Black Scholes",
@@ -224,7 +232,7 @@ if feature_selected:
             df = scan_top_nasdaq()
             container.table(df)
 
-        elif feature_selected == "Pair Trading":
+        elif feature_selected == "Pairs Trading":
             pair_trading_container = st.container()
             with pair_trading_container:
                 run_pair_trading()
