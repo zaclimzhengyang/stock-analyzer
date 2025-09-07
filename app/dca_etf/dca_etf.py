@@ -17,8 +17,12 @@ OUTPUT_CSV = "top10_etfs_combined.csv"
 OUTPUT_PNG = "top10_etfs_combined.png"
 TICKERS_TO_SKIP = ["OND", "IBCA"]  # Suspected to have bad data
 CACHE_CHUNK_SIZE = 100  # number of tickers per chunk
-CACHE_DIR = os.path.join(os.path.dirname(__file__), "")
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+CACHE_DIR = os.path.join(BASE_DIR, "cached_files")
+os.makedirs(CACHE_DIR, exist_ok=True)
 CACHE_PATTERN = os.path.join(CACHE_DIR, "all_prices_cache_{}.pkl")
+
+
 
 # === Helper Functions ===
 
@@ -123,16 +127,16 @@ def save_cache(all_prices: dict):
 
 
 def load_cache() -> dict:
-    """Load all pickle chunks and merge into one dictionary."""
     all_prices = {}
-    files = sorted(glob.glob(CACHE_PATTERN.format("*")))
-    if not files:
-        return {}
+    files = sorted(glob.glob(os.path.join(CACHE_DIR, "all_prices_cache_*.pkl")))
     for f in files:
-        with open(f, "rb") as fh:
-            chunk = pickle.load(fh)
-            all_prices.update(chunk)
-        print(f"Loaded {f} with {len(chunk)} tickers.")
+        try:
+            with open(f, "rb") as fh:
+                chunk = pickle.load(fh)
+                all_prices.update(chunk)
+            print(f"Loaded {f} with {len(chunk)} tickers.")
+        except Exception as e:
+            print(f"Skipping corrupted cache file {f}: {e}")
     print(f"Total tickers loaded: {len(all_prices)}")
     return all_prices
 
@@ -145,11 +149,11 @@ def dcf_etf_main():
     print("Tickers to process:", len(tickers))
 
     # Load or download
-    if glob.glob(CACHE_PATTERN.format("*")):
-        all_prices = load_cache()
-    else:
+    if not glob.glob(CACHE_PATTERN.format("*")):
         all_prices = download_all_prices(tickers)
         save_cache(all_prices)
+    else:
+        all_prices = load_cache()
 
     # Run DCA
     results = []
