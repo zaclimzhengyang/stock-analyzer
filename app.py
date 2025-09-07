@@ -24,6 +24,16 @@ from app.trading_strategies.pair_trading import pair_trading_strategy
 def run_pair_trading():
     st.subheader("🔗 Pair Trading Strategy (JKHY vs LDOS)")
 
+    st.markdown("""
+        **Introduction:**  
+        Pair trading is a market-neutral strategy widely used in quantitative finance.  
+        It identifies two historically cointegrated stocks and takes long/short positions 
+        when their spread deviates from the historical equilibrium, aiming to profit 
+        as the spread reverts to the mean.  
+
+        In this example, we analyze the pair **JKHY and LDOS**.
+        """)
+
     pair_trading_strategy()
 
     for fig_num in plt.get_fignums():
