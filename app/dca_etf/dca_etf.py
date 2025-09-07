@@ -17,7 +17,8 @@ OUTPUT_CSV = "top10_etfs_combined.csv"
 OUTPUT_PNG = "top10_etfs_combined.png"
 TICKERS_TO_SKIP = ["OND", "IBCA"]  # Suspected to have bad data
 CACHE_CHUNK_SIZE = 100  # number of tickers per chunk
-CACHE_PATTERN = "all_prices_cache_{}.pkl"  # pattern for chunked cache files
+CACHE_DIR = os.path.join(os.path.dirname(__file__), "")
+CACHE_PATTERN = os.path.join(CACHE_DIR, "all_prices_cache_{}.pkl")
 
 # === Helper Functions ===
 
