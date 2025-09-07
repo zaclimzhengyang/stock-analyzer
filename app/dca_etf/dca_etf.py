@@ -1,4 +1,8 @@
 import datetime as dt
+import os
+import pickle
+import glob
+
 import pandas as pd
 import numpy as np
 import requests
@@ -12,7 +16,10 @@ MONTHLY_INVEST = 100.0
 OUTPUT_CSV = "top10_etfs_combined.csv"
 OUTPUT_PNG = "top10_etfs_combined.png"
 TICKERS_TO_SKIP = ["OND", "IBCA"]  # Suspected to have bad data
+CACHE_CHUNK_SIZE = 100  # number of tickers per chunk
+CACHE_PATTERN = "all_prices_cache_{}.pkl"  # pattern for chunked cache files
 
+# === Helper Functions ===
 
 def get_from_nyse_excel():
     url = "https://www.nyse.com/publicdocs/nyse/markets/nyse-arca/NYSE_Arca_Equities_LMM_Current.xlsx"
@@ -47,7 +54,7 @@ def first_trading_days(prices):
 
 def run_dca_from_prices(ticker, all_prices):
     try:
-        if ticker not in all_prices.columns.get_level_values(0):
+        if ticker not in all_prices:
             return None
 
         df = all_prices[ticker]
@@ -56,11 +63,8 @@ def run_dca_from_prices(ticker, all_prices):
 
         prices = df["Adj Close"].dropna()
 
-        # Only include ETFs that started trading before START_DATE
         if prices.index[0].date() > START_DATE:
             return None
-
-        # Require at least 4 years of data
         if len(prices) < 48:
             return None
 
@@ -90,7 +94,6 @@ def run_dca_from_prices(ticker, all_prices):
 
 
 def download_all_prices(tickers):
-    """Download all tickers at once into a multi-index DataFrame."""
     df = yf.download(
         tickers,
         start=(START_DATE + dt.timedelta(days=-1)).strftime("%Y-%m-%d"),
@@ -99,22 +102,55 @@ def download_all_prices(tickers):
         auto_adjust=False,
         group_by="ticker"
     )
-    return df
+    out = {}
+    for t in tickers:
+        if t in df.columns.get_level_values(0):
+            out[t] = df[t].dropna()
+    return out
 
 
-def dcf_etf_main():
+def save_cache(all_prices: dict):
+    """Split all_prices into chunks and save as multiple pickle files."""
+    tickers = sorted(all_prices.keys())
+    for i in range(0, len(tickers), CACHE_CHUNK_SIZE):
+        chunk_tickers = tickers[i:i + CACHE_CHUNK_SIZE]
+        chunk_data = {t: all_prices[t] for t in chunk_tickers}
+        filename = CACHE_PATTERN.format(i // CACHE_CHUNK_SIZE + 1)
+        with open(filename, "wb") as f:
+            pickle.dump(chunk_data, f)
+        print(f"Saved {filename} with {len(chunk_tickers)} tickers.")
+
+
+def load_cache() -> dict:
+    """Load all pickle chunks and merge into one dictionary."""
+    all_prices = {}
+    files = sorted(glob.glob(CACHE_PATTERN.format("*")))
+    if not files:
+        return {}
+    for f in files:
+        with open(f, "rb") as fh:
+            chunk = pickle.load(fh)
+            all_prices.update(chunk)
+        print(f"Loaded {f} with {len(chunk)} tickers.")
+    print(f"Total tickers loaded: {len(all_prices)}")
+    return all_prices
+
+
+def dc_etf_main():
     start_time = dt.datetime.now()
     s = get_from_nyse_excel()
     s = s - set(TICKERS_TO_SKIP)
-    print("Tickers to process:", len(s))
+    tickers = sorted(list(s))
+    print("Tickers to process:", len(tickers))
 
-    # Download all at once
-    all_prices = download_all_prices(list(s))
+    # Load or download
+    if glob.glob(CACHE_PATTERN.format("*")):
+        all_prices = load_cache()
+    else:
+        all_prices = download_all_prices(tickers)
+        save_cache(all_prices)
 
-    # For testing purpose
-    # s = list(s)[:500]
-    # s = ["SMOG"]
-
+    # Run DCA
     results = []
     for t in tqdm(sorted(s), desc="DCA backtests"):
         res = run_dca_from_prices(t, all_prices)
@@ -139,15 +175,12 @@ def dcf_etf_main():
 
     df = pd.DataFrame(results).sort_values("return", ascending=False).reset_index(drop=True)
     top = df.head(10)
-
-    # Print summary table
     summary_df = top[["ticker", "invested", "final", "return", "cagr"]]
     print("\nSummary Results:")
     print(summary_df.to_string())
     summary_df.to_csv(OUTPUT_CSV, index=False)
     print(f"\nSummary saved to {OUTPUT_CSV}")
 
-    # Create plot
     plt.figure(figsize=(14, 8))
     for _, row in top.iterrows():
         srs = row["series"]
@@ -167,9 +200,8 @@ def dcf_etf_main():
     plt.tight_layout()
     plt.savefig(OUTPUT_PNG, dpi=150)
     plt.show()
-    end_time = dt.datetime.now()
-    print("time taken:", end_time - start_time) # 0:00:38.018433
+    print("Time taken:", dt.datetime.now() - start_time)
 
 
 if __name__ == "__main__":
-    main()
+    dc_etf_main()
