@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 
 # === Import analysis functions ===
 from app.data.downloader import get_price_data, get_fundamentals
+from app.dca_etf.dca_etf import dca_etf
 from app.factors.momentum import generate_momentum_scores, generate_signals
 from app.backtest.backtest import get_backtest
 from app.back_trader.analyzer import backtrader_analyze
@@ -23,13 +24,58 @@ from app.trading_strategies.pair_trading import pair_trading_strategy
 def run_pair_trading():
     st.subheader("🔗 Pair Trading Strategy (JKHY vs LDOS)")
 
-    # Run your original strategy (this internally calls plt.figure + plt.show())
     pair_trading_strategy()
 
-    # Instead of plt.show(), Streamlit renders the active figures
     for fig_num in plt.get_fignums():
         fig = plt.figure(fig_num)
         st.pyplot(fig)
+
+
+def run_etf_dca():
+    st.subheader("💰 Top 10 Performing ETF DCA Backtest (2020-2025)")
+    # --- Summary Section ---
+    st.markdown("""
+        ### 📘 Overview
+        **Problem Statement:**  
+        Investors often wonder which ETFs provide the best long-term growth if they invest regularly, rather than trying to time the market.  
+        This backtest applies a **Dollar-Cost Averaging (DCA)** strategy across a broad set of ETFs to identify the top performers.  
+
+        **Approach:**  
+        1. Collect all ETFs from NYSE Arca listings.  
+        2. Simulate monthly investments of $100 into each ETF between **2020–2025**.  
+        3. Calculate portfolio value growth, returns, and CAGR (Compound Annual Growth Rate).  
+        4. Rank ETFs and display the **Top 10 performers**.  
+
+        **Why It Matters:**  
+        - DCA removes the risk of timing the market by spreading out investments.  
+        - Helps investors discover ETFs with **resilient long-term growth**.  
+        - Provides a transparent comparison of **risk-adjusted performance** across ETFs.  
+        """)
+
+    dca_etf()
+
+    figs = []
+    for fig_num in plt.get_fignums():
+        figs.append(plt.figure(fig_num))
+
+    return figs
+
+
+def fundamentals_analysis(ticker: str, start_date: str, end_date: str) -> pd.DataFrame:
+    """Run fundamentals + momentum analysis and return as DataFrame."""
+    price_data = get_price_data(ticker, start_date, end_date)
+    fundamentals = get_fundamentals(ticker, price_data)
+    scores = generate_momentum_scores(price_data)
+
+    fundamentals_data = {
+        "Ticker": ticker,
+        "30-Day Momentum": scores[30] if scores else None,
+        "60-Day Momentum": scores[60] if scores else None,
+        "90-Day Momentum": scores[90] if scores else None,
+        **fundamentals,
+    }
+
+    return pd.DataFrame.from_dict(fundamentals_data, orient="index", columns=["Value"])
 
 
 # === App title ===
@@ -46,14 +92,15 @@ end_date = st.sidebar.text_input("End Date", "2025-06-01")
 st.sidebar.header("Select Analysis")
 features = [
     "Fundamentals",
-    "PDF Analysis",
-    "Backtrader Backtest",
-    "Black Scholes",
-    "Momentum Backtest",
-    "Monte Carlo Simulation",
-    "Survivorship Bias",
-    "NASDAQ Buy Recommendations",
-    "Pair Trading"
+    "Top 10 performing ETF DCA Backtest (2020-2025)",
+    "Pair Trading",
+    # "PDF Analysis",
+    # "Backtrader Backtest",
+    # "Black Scholes",
+    # "Momentum Backtest",
+    # "Monte Carlo Simulation",
+    # "Survivorship Bias",
+    # "NASDAQ Buy Recommendations",
 ]
 
 # Dictionary to map feature to its button state
@@ -68,18 +115,14 @@ if feature_selected:
 
     try:
         if feature_selected == "Fundamentals":
-            container = st.container()
-            container.subheader("📊 Fundamentals")
-            price_data = get_price_data(ticker, start_date, end_date)
-            fundamentals = get_fundamentals(ticker, price_data)
-            scores = generate_momentum_scores(price_data)
-            fundamentals_data = {
-                "Ticker": ticker,
-                "30-Day Momentum": scores[30] if scores else None,
-                "60-Day Momentum": scores[60] if scores else None,
-                "90-Day Momentum": scores[90] if scores else None,
-                **fundamentals}
-            container.table(pd.DataFrame.from_dict(fundamentals_data, orient="index", columns=["Value"]))
+            st.subheader("📊 Fundamentals")
+            df = fundamentals_analysis(ticker, start_date, end_date)
+            st.table(df)
+
+        elif feature_selected == "Top 10 performing ETF DCA Backtest (2020-2025)":
+            figs = run_etf_dca()
+            for fig in figs:
+                st.pyplot(fig)
 
         elif feature_selected == "PDF Analysis":
             container = st.container()
