@@ -3,6 +3,8 @@ import plotly.graph_objects as go
 import streamlit as st
 from datetime import datetime, timedelta
 
+from matplotlib import pyplot as plt
+
 # === Import analysis functions ===
 from app.data.downloader import get_price_data, get_fundamentals
 from app.factors.momentum import generate_momentum_scores, generate_signals
@@ -14,6 +16,16 @@ from app.monte_carlo.simulation import mc_simulation
 from app.prediction.predictor import scan_top_nasdaq
 from app.probability_density_function.pdf import pdf
 from app.survivorship_bias.survivorship_bias import survivorship_bias_summary_plot
+from app.trading_strategies.pair_trading import pair_trading_strategy
+
+
+# === Import trading strategies ===
+def run_pair_trading():
+    st.subheader("🔗 Pair Trading Strategy (JKHY vs LDOS)")
+    fig = plt.figure()
+    pair_trading_strategy()
+    st.pyplot(fig)
+
 
 # === App title ===
 st.title("📈 Quantitative Stock Analyzer")
@@ -36,6 +48,7 @@ features = [
     "Monte Carlo Simulation",
     "Survivorship Bias",
     "NASDAQ Buy Recommendations",
+    "Pair Trading"
 ]
 
 # Dictionary to map feature to its button state
@@ -152,6 +165,12 @@ if feature_selected:
             container.subheader("NASDAQ Buy Recommendations")
             df = scan_top_nasdaq()
             container.table(df)
+
+        elif feature_selected == "Pair Trading":
+            pair_trading_container = st.container()
+            with pair_trading_container:
+                run_pair_trading()
+
 
     except Exception as e:
         st.error(f"Failed to run {feature_selected}: {e}")
