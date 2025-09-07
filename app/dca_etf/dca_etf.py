@@ -136,7 +136,7 @@ def load_cache() -> dict:
     return all_prices
 
 
-def dc_etf_main():
+def dcf_etf_main():
     start_time = dt.datetime.now()
     s = get_from_nyse_excel()
     s = s - set(TICKERS_TO_SKIP)
@@ -204,4 +204,4 @@ def dc_etf_main():
 
 
 if __name__ == "__main__":
-    dc_etf_main()
+    dcf_etf_main()
