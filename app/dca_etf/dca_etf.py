@@ -102,7 +102,7 @@ def download_all_prices(tickers):
     return df
 
 
-def main():
+def dcf_etf_main():
     start_time = dt.datetime.now()
     s = get_from_nyse_excel()
     s = s - set(TICKERS_TO_SKIP)

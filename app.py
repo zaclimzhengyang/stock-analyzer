@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 
 # === Import analysis functions ===
 from app.data.downloader import get_price_data, get_fundamentals
-from app.dca_etf.dca_etf import dca_etf
+from app.dca_etf.dca_etf import dcf_etf_main
 from app.factors.momentum import generate_momentum_scores, generate_signals
 from app.backtest.backtest import get_backtest
 from app.back_trader.analyzer import backtrader_analyze
@@ -52,7 +52,7 @@ def run_etf_dca():
         - Provides a transparent comparison of **risk-adjusted performance** across ETFs.  
         """)
 
-    dca_etf()
+    dcf_etf_main()
 
     figs = []
     for fig_num in plt.get_fignums():
