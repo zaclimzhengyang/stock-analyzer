@@ -1,6 +1,4 @@
 import datetime as dt
-import os
-
 import pandas as pd
 import numpy as np
 import requests
@@ -14,10 +12,8 @@ MONTHLY_INVEST = 100.0
 OUTPUT_CSV = "top10_etfs_combined.csv"
 OUTPUT_PNG = "top10_etfs_combined.png"
 TICKERS_TO_SKIP = ["OND", "IBCA"]  # Suspected to have bad data
-CACHE_FILE = "all_prices_cache.pkl"
 
 
-# === Helper Functions ===
 def get_from_nyse_excel():
     url = "https://www.nyse.com/publicdocs/nyse/markets/nyse-arca/NYSE_Arca_Equities_LMM_Current.xlsx"
     r = requests.get(url)
@@ -51,7 +47,7 @@ def first_trading_days(prices):
 
 def run_dca_from_prices(ticker, all_prices):
     try:
-        if ticker not in all_prices:
+        if ticker not in all_prices.columns.get_level_values(0):
             return None
 
         df = all_prices[ticker]
@@ -94,7 +90,7 @@ def run_dca_from_prices(ticker, all_prices):
 
 
 def download_all_prices(tickers):
-    """Download tickers and return dict[ticker -> DataFrame]."""
+    """Download all tickers at once into a multi-index DataFrame."""
     df = yf.download(
         tickers,
         start=(START_DATE + dt.timedelta(days=-1)).strftime("%Y-%m-%d"),
@@ -103,45 +99,22 @@ def download_all_prices(tickers):
         auto_adjust=False,
         group_by="ticker"
     )
-    out = {}
-    for t in tickers:
-        if t in df.columns.get_level_values(0):
-            out[t] = df[t].dropna()
-    return out
+    return df
 
 
-def save_cache(all_prices: dict):
-    # Save all prices as a single pickle or parquet file
-    pd.to_pickle(all_prices, "all_prices_cache.pkl")
-    print(f"Saved cache to all_prices_cache.pkl with {len(all_prices)} tickers.")
-
-
-def load_cache() -> dict:
-    all_prices = pd.read_pickle("all_prices_cache.pkl")
-    print(f"Loaded cache from all_prices_cache.pkl with {len(all_prices)} tickers.")
-    return all_prices
-
-
-def dca_etf():
-    # --- STEP 1: Get tickers ---
+def main():
     start_time = dt.datetime.now()
     s = get_from_nyse_excel()
     s = s - set(TICKERS_TO_SKIP)
-    tickers = sorted(list(s))
-    print("Tickers to process:", len(tickers))
+    print("Tickers to process:", len(s))
+
+    # Download all at once
+    all_prices = download_all_prices(list(s))
 
     # For testing purpose
     # s = list(s)[:500]
     # s = ["SMOG"]
 
-    # --- STEP 2: Load or download prices ---
-    if os.path.exists(CACHE_FILE):
-        all_prices = load_cache()
-    else:
-        all_prices = download_all_prices(tickers)
-        save_cache(all_prices)
-
-    # --- STEP 3: Run DCA backtests ---
     results = []
     for t in tqdm(sorted(s), desc="DCA backtests"):
         res = run_dca_from_prices(t, all_prices)
@@ -164,7 +137,6 @@ def dca_etf():
         print("No results; maybe no ticker had full data.")
         return
 
-    # --- STEP 4: Summaries ---
     df = pd.DataFrame(results).sort_values("return", ascending=False).reset_index(drop=True)
     top = df.head(10)
 
@@ -175,7 +147,7 @@ def dca_etf():
     summary_df.to_csv(OUTPUT_CSV, index=False)
     print(f"\nSummary saved to {OUTPUT_CSV}")
 
-    # --- STEP 5: Plot ---
+    # Create plot
     plt.figure(figsize=(14, 8))
     for _, row in top.iterrows():
         srs = row["series"]
@@ -196,8 +168,8 @@ def dca_etf():
     plt.savefig(OUTPUT_PNG, dpi=150)
     plt.show()
     end_time = dt.datetime.now()
-    print("time taken:", end_time - start_time)  # 0:00:38.018433
+    print("time taken:", end_time - start_time) # 0:00:38.018433
 
 
 if __name__ == "__main__":
-    dca_etf()
+    main()
