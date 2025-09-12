@@ -9,7 +9,7 @@ import statsmodels.api as sm
 import requests
 
 # === Constants ===
-THRESHOLD_P_VALUE = 0.1  # p-value threshold for stationarity and co-integration tests
+THRESHOLD_P_VALUE = 0.05 # p-value threshold for stationarity and co-integration tests
 INDUSTRY = "Information Technology Services"
 START_DATE = "2020-01-01"
 END_DATE = "2025-12-31"
@@ -70,7 +70,7 @@ def find_cointegrated_pairs(data: pd.DataFrame):
             pvalue = result[1]
             score_matrix[i, j] = score
             pvalue_matrix[i, j] = pvalue
-            if pvalue < 0.05:
+            if pvalue < THRESHOLD_P_VALUE:
                 pairs.append((keys[i], keys[j], pvalue))
 
     return score_matrix, pvalue_matrix, sorted(pairs, key=lambda x: x[2])
