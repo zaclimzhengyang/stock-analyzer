@@ -1,5 +1,4 @@
 import pandas as pd
-import plotly.graph_objects as go
 import streamlit as st
 from datetime import datetime, timedelta
 
@@ -13,7 +12,7 @@ from app.backtest.backtest import get_backtest
 from app.back_trader.analyzer import backtrader_analyze
 from app.back_trader.models import RunSettings
 from app.black_scholes.black_scholes_option_pricer import bsop
-from app.monte_carlo.simulation import mc_simulation
+from app.monte_carlo.gbm_simulation import mc_simulation_gbm
 from app.prediction.predictor import scan_top_nasdaq
 from app.probability_density_function.pdf import pdf
 from app.survivorship_bias.survivorship_bias import survivorship_bias_summary_plot
@@ -21,6 +20,42 @@ from app.trading_strategies.pair_trading import pair_trading_strategy
 
 
 # === Import trading strategies ===
+def run_gbm_monte_carlo(ticker: str, start_date: str, end_date: str):
+    """
+    Helper to run the GBM Monte Carlo simulation and display it in Streamlit.
+    """
+    st.subheader(f"🎲 GBM Monte Carlo Simulation — {ticker}")
+
+    st.markdown("""
+        **What it is:**  
+        GBM Monte Carlo simulation estimates the distribution of possible future portfolio values
+        by generating many random price paths based on historical mean returns and covariance.
+
+        **Approach:**  
+        - Retrieve historical mean returns and covariance matrix for the selected ticker.  
+        - Simulate hundreds of random price paths over a given horizon.  
+        - Calculate **5% Value at Risk (VaR)** and **5% Conditional VaR (CVaR)** from the simulated outcomes.  
+
+        **Why it matters:**  
+        - Quantifies downside risk in dollar terms.  
+        - Shows the range of possible portfolio outcomes, helping investors understand tail risk.  
+    """)
+
+    # --- Convert date strings to datetime ---
+    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
+    end_date_dt = datetime.strptime(end_date, "%Y-%m-%d")
+
+    # --- Run the simulation (this returns the Plotly figure and metrics) ---
+    result = mc_simulation_gbm(ticker, start_date_dt, end_date_dt)
+
+    # --- Display the figure inside Streamlit ---
+    st.plotly_chart(result["figure"], use_container_width=True)
+
+    # --- Show the risk metrics ---
+    st.success(f"5% VaR: ${result['VaR_5']:,.2f}")
+    st.success(f"5% CVaR: ${result['CVaR_5']:,.2f}")
+
+
 def run_pair_trading():
     st.subheader("🔗 Pairs Trading Strategy (JKHY vs LDOS)")
 
@@ -101,142 +136,151 @@ st.title("📈 Quantitative Stock Analyzer")
 
 # === Sidebar Inputs ===
 st.sidebar.header("Input Parameters")
-ticker = st.sidebar.text_input("Ticker", "AAPL")
-ticker = ticker.upper().strip()
-start_date = st.sidebar.text_input("Start Date", "2025-01-01")
+ticker = st.sidebar.text_input("Ticker", "AAPL").upper().strip()
+start_date = st.sidebar.text_input("Start Date", "2020-01-01")
 end_date = st.sidebar.text_input("End Date", "2025-06-01")
 
-# === Main Page Visual Menu ===
-st.sidebar.header("Select Analysis")
-features = [
-    "Fundamentals",
-    "Top 10 performing ETF DCA Backtest (2020-2025)",
-    "Pairs Trading",
-    # "PDF Analysis",
-    # "Backtrader Backtest",
-    # "Black Scholes",
-    # "Momentum Backtest",
-    # "Monte Carlo Simulation",
-    # "Survivorship Bias",
-    # "NASDAQ Buy Recommendations",
-]
+# --- Sidebar menu for ticker-specific analyses ---
+st.sidebar.header("Ticker Analyses")
+ticker_features = ["Fundamentals", "GBM Monte Carlo Simulation"]
 
-# Dictionary to map feature to its button state
-feature_selected = None
-for feature in features:
-    if st.sidebar.button(feature):
-        feature_selected = feature
+# Initialize session_state if not exists
+if "ticker_analysis" not in st.session_state:
+    st.session_state.ticker_analysis = None
+if "other_analysis" not in st.session_state:
+    st.session_state.other_analysis = None
 
-# === Run selected feature ===
-if feature_selected:
-    st.info(f"Running: {feature_selected}")
+def select_ticker_analysis():
+    # When a ticker feature is selected, clear other_analysis
+    st.session_state.other_analysis = None
 
-    try:
-        if feature_selected == "Fundamentals":
-            st.subheader("📊 Fundamentals")
-            df = fundamentals_analysis(ticker, start_date, end_date)
-            st.table(df)
+def select_other_analysis():
+    # When other feature is selected, clear ticker_analysis
+    st.session_state.ticker_analysis = None
 
-        elif feature_selected == "Top 10 performing ETF DCA Backtest (2020-2025)":
-            figs = run_etf_dca()
-            for fig in figs:
-                st.pyplot(fig)
+selected_ticker_feature = st.sidebar.radio(
+    "Choose analysis:",
+    [None] + ticker_features,
+    index=0,
+    format_func=lambda x: "Select..." if x is None else x,
+    key="ticker_analysis",
+    on_change=select_ticker_analysis
+)
 
-        elif feature_selected == "PDF Analysis":
-            container = st.container()
-            container.subheader("📊 Probability Density Function Analysis")
-            fig_pdf, stats = pdf(ticker, start_date, end_date)
-            container.pyplot(fig_pdf)
-            container.table(pd.DataFrame.from_dict(stats, orient="index", columns=["Value"]))
+# --- Sidebar menu for other analyses ---
+st.sidebar.header("Other Analyses")
+other_features = ["Top 10 performing ETF DCA Backtest (2020-2025)", "Pairs Trading (JKHY vs LDOS)"]
 
-        elif feature_selected == "Backtrader Backtest":
-            container = st.container()
-            container.subheader("📈 Backtrader Backtest")
-            settings = RunSettings(
-                tickers=[ticker],
-                start="2020-01-01",
-                end="2025-01-01",
-                cash=100000,
-                commission=0.0005,
-                slippage=0.0002,
-                fast=50,
-                slow=200,
-                rsi_buy=30,
-                rsi_sell=70,
-                out="results",
-            )
-            analysis = backtrader_analyze(settings)
-            bt_df = pd.DataFrame(analysis).T
-            bt_df.index.name = "Ticker"
-            container.table(bt_df)
+selected_other_feature = st.sidebar.radio(
+    "Choose other analysis:",
+    [None] + other_features,
+    index=0,
+    format_func=lambda x: "Select..." if x is None else x,
+    key="other_analysis",
+    on_change=select_other_analysis
+)
 
-        elif feature_selected == "Black Scholes":
-            container = st.container()
-            container.subheader("⚖️ Black Scholes Model")
-            bsm_df = bsop(ticker)[["contractSymbol", "bsmValuation", "delta", "gamma", "vega", "theta", "rho"]]
-            container.table(bsm_df)
+# --- Run ticker-specific analysis ---
+if st.session_state.ticker_analysis:
+    if st.session_state.ticker_analysis == "Fundamentals":
+        st.subheader("📊 Fundamentals")
+        df = fundamentals_analysis(ticker, start_date, end_date)
+        st.table(df)
+    elif st.session_state.ticker_analysis == "GBM Monte Carlo Simulation":
+        run_gbm_monte_carlo(ticker, start_date, end_date)
 
-        elif feature_selected == "Momentum Backtest":
-            container = st.container()
-            container.subheader("📈 Momentum Backtest")
-            extended_start_date = (datetime.strptime(start_date, "%Y-%m-%d") - timedelta(days=500)).strftime("%Y-%m-%d")
-            close_prices = get_price_data(ticker, extended_start_date, end_date)[("Adj Close", ticker)]
-            signals = generate_signals(close_prices)
-            backtest_result = get_backtest(close_prices, signals)
-            container.line_chart(pd.Series(backtest_result))
-            container.success(f"Final portfolio value: ${pd.Series(backtest_result).iloc[-1]:,.2f}")
-
-        elif feature_selected == "Monte Carlo Simulation":
-            container = st.container()
-            container.subheader("🎲 Monte Carlo Simulation")
-            start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
-            end_date_dt = datetime.strptime(end_date, "%Y-%m-%d")
-            sim_result = mc_simulation(ticker, start_date_dt, end_date_dt)
-            df_sim = pd.DataFrame(sim_result["simulations"])
-            fig = go.Figure()
-            for col in df_sim.columns:
-                fig.add_trace(
-                    go.Scatter(x=df_sim.index, y=df_sim[col], mode="lines", line=dict(width=1), showlegend=False))
-            container.plotly_chart(fig, use_container_width=True)
-            container.success(f"5% VaR: ${sim_result['VaR_5']:,.2f}")
-            container.success(f"5% CVaR: ${sim_result['CVaR_5']:,.2f}")
-
-        elif feature_selected == "Survivorship Bias":
-            container = st.container()
-            container.subheader("🏦 Survivorship Bias: S&P500 vs SPY")
-            summary, fig_surv = survivorship_bias_summary_plot()
-            st.pyplot(fig_surv)
-            df = pd.DataFrame(
-                [
-                    {
-                        "Portfolio": summary["Portfolio (Current)"],
-                        "CAGR": summary["CAGR (Current)"],
-                        "Vol": summary["Vol (Current)"],
-                        "Sharpe": summary["Sharpe (Current)"],
-                        "Max Drawdown": summary["Max Drawdown (Current)"],
-                    },
-                    {
-                        "Portfolio": summary["Portfolio"],
-                        "CAGR": summary["CAGR"],
-                        "Vol": summary["Vol"],
-                        "Sharpe": summary["Sharpe"],
-                        "Max Drawdown": summary["Max Drawdown"],
-                    },
-                ]
-            ).set_index("Portfolio")
-            container.table(df)
-
-        elif feature_selected == "NASDAQ Buy Recommendations":
-            container = st.container()
-            container.subheader("NASDAQ Buy Recommendations")
-            df = scan_top_nasdaq()
-            container.table(df)
-
-        elif feature_selected == "Pairs Trading":
-            pair_trading_container = st.container()
-            with pair_trading_container:
-                run_pair_trading()
-
-
-    except Exception as e:
-        st.error(f"Failed to run {feature_selected}: {e}")
+# --- Run other analyses ---
+elif st.session_state.other_analysis:
+    if st.session_state.other_analysis == "Top 10 performing ETF DCA Backtest (2020-2025)":
+        figs = run_etf_dca()
+        for fig in figs:
+            st.pyplot(fig)
+    elif st.session_state.other_analysis == "Pairs Trading (JKHY vs LDOS)":
+        pair_trading_container = st.container()
+        with pair_trading_container:
+            run_pair_trading()
+#
+# # === Run selected feature ===
+# if feature_selected:
+#     st.info(f"Running: {feature_selected}")
+#
+#     try:
+#         if feature_selected == "PDF Analysis":
+#             container = st.container()
+#             container.subheader("📊 Probability Density Function Analysis")
+#             fig_pdf, stats = pdf(ticker, start_date, end_date)
+#             container.pyplot(fig_pdf)
+#             container.table(pd.DataFrame.from_dict(stats, orient="index", columns=["Value"]))
+#
+#         elif feature_selected == "Backtrader Backtest":
+#             container = st.container()
+#             container.subheader("📈 Backtrader Backtest")
+#             settings = RunSettings(
+#                 tickers=[ticker],
+#                 start="2020-01-01",
+#                 end="2025-01-01",
+#                 cash=100000,
+#                 commission=0.0005,
+#                 slippage=0.0002,
+#                 fast=50,
+#                 slow=200,
+#                 rsi_buy=30,
+#                 rsi_sell=70,
+#                 out="results",
+#             )
+#             analysis = backtrader_analyze(settings)
+#             bt_df = pd.DataFrame(analysis).T
+#             bt_df.index.name = "Ticker"
+#             container.table(bt_df)
+#
+#         elif feature_selected == "Black Scholes":
+#             container = st.container()
+#             container.subheader("⚖️ Black Scholes Model")
+#             bsm_df = bsop(ticker)[["contractSymbol", "bsmValuation", "delta", "gamma", "vega", "theta", "rho"]]
+#             container.table(bsm_df)
+#
+#         elif feature_selected == "Momentum Backtest":
+#             container = st.container()
+#             container.subheader("📈 Momentum Backtest")
+#             extended_start_date = (datetime.strptime(start_date, "%Y-%m-%d") - timedelta(days=500)).strftime("%Y-%m-%d")
+#             close_prices = get_price_data(ticker, extended_start_date, end_date)[("Adj Close", ticker)]
+#             signals = generate_signals(close_prices)
+#             backtest_result = get_backtest(close_prices, signals)
+#             container.line_chart(pd.Series(backtest_result))
+#             container.success(f"Final portfolio value: ${pd.Series(backtest_result).iloc[-1]:,.2f}")
+#
+#
+#         elif feature_selected == "Survivorship Bias":
+#             container = st.container()
+#             container.subheader("🏦 Survivorship Bias: S&P500 vs SPY")
+#             summary, fig_surv = survivorship_bias_summary_plot()
+#             st.pyplot(fig_surv)
+#             df = pd.DataFrame(
+#                 [
+#                     {
+#                         "Portfolio": summary["Portfolio (Current)"],
+#                         "CAGR": summary["CAGR (Current)"],
+#                         "Vol": summary["Vol (Current)"],
+#                         "Sharpe": summary["Sharpe (Current)"],
+#                         "Max Drawdown": summary["Max Drawdown (Current)"],
+#                     },
+#                     {
+#                         "Portfolio": summary["Portfolio"],
+#                         "CAGR": summary["CAGR"],
+#                         "Vol": summary["Vol"],
+#                         "Sharpe": summary["Sharpe"],
+#                         "Max Drawdown": summary["Max Drawdown"],
+#                     },
+#                 ]
+#             ).set_index("Portfolio")
+#             container.table(df)
+#
+#         elif feature_selected == "NASDAQ Buy Recommendations":
+#             container = st.container()
+#             container.subheader("NASDAQ Buy Recommendations")
+#             df = scan_top_nasdaq()
+#             container.table(df)
+#
+#
+#     except Exception as e:
+#         st.error(f"Failed to run {feature_selected}: {e}")
