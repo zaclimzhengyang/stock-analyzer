@@ -13,7 +13,7 @@ from app.back_trader.models import RunSettings
 from app.black_scholes.black_scholes_option_pricer import bsop
 from app.data.downloader import get_price_data, get_fundamentals
 from app.factors.momentum import generate_signals, generate_momentum_score
-from app.monte_carlo.simulation import mc_simulation
+from app.monte_carlo.gbm_simulation import mc_simulation_gbm
 from app.prediction.predictor import StockPredictor, scan_top_nasdaq
 from app.probability_density_function.pdf import pdf
 from app.survivorship_bias.survivorship_bias import survivorship_bias_summary_plot
@@ -105,9 +105,7 @@ def mc_sim(ticker):
     try:
         start_date = request.args.get("start_date")
         end_date = request.args.get("end_date")
-        start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
-        end_date_dt = datetime.strptime(end_date, "%Y-%m-%d")
-        result = mc_simulation(ticker, start_date_dt, end_date_dt)
+        result = mc_simulation_gbm(ticker, start_date, end_date)
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500

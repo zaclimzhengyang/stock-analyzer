@@ -6,6 +6,8 @@ import yfinance as yf
 import pandas as pd
 
 from constants import treasury_fred_series
+
+
 # from pandas_datareader import data as pdr
 
 
@@ -17,23 +19,6 @@ def get_price_data(ticker, start_date="2025-01-01", end_date="2025-06-01"):
     """
     data = yf.download(tickers=[ticker], start=start_date, end=end_date, auto_adjust=False)
     return data
-
-
-def get_mean_returns_cov_matrix(
-        stocks: Union[list[str], str], start: datetime, end: datetime
-) -> tuple[pd.Series, pd.DataFrame]:
-    """
-    Calculate mean daily returns and covariance matrix for given stocks.
-
-    Financial Description:
-    - Mean returns: Average daily return for each stock.
-    - Covariance matrix: Measures how returns of stocks move together.
-    """
-    stock_data = yf.download(tickers=stocks, start=start, end=end, auto_adjust=False)["Adj Close"]
-    returns = stock_data.pct_change()
-    mean_returns = returns.mean()
-    cov_matrix = returns.cov()
-    return mean_returns, cov_matrix
 
 
 def get_fundamentals(ticker: str, price_data: pd.DataFrame):
@@ -125,7 +110,7 @@ def get_treasury_yield_curve(date):
     for label, code in treasury_fred_series.items():
         try:
             # val = pdr.DataReader(code, "fred", date, date).iloc[0, 0]
-            yields[label] = 0.04 # set to 5% for now
+            yields[label] = 0.04  # set to 5% for now
         except Exception:
             yields[label] = None
     return yields
