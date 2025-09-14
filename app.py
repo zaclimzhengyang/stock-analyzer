@@ -40,16 +40,14 @@ def run_gbm_monte_carlo(ticker: str, start_date: str, end_date: str):
         - Quantifies downside risk in dollar terms.  
         - Shows the range of possible portfolio outcomes, helping investors understand tail risk.  
     """)
-
-    # --- Convert date strings to datetime ---
-    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
-    end_date_dt = datetime.strptime(end_date, "%Y-%m-%d")
-
     # --- Run the simulation (this returns the Plotly figure and metrics) ---
-    result = mc_simulation_gbm(ticker, start_date_dt, end_date_dt)
+    result = mc_simulation_gbm(ticker, start_date, end_date)
 
     # --- Display the figure inside Streamlit ---
-    st.plotly_chart(result["figure"], use_container_width=True)
+    st.plotly_chart(result["stock_price_fig"], use_container_width=True)
+    st.plotly_chart(result["stock_price_histogram"], use_container_width=True)
+    st.plotly_chart(result["portfolio_fig"], use_container_width=True)
+    st.plotly_chart(result["portfolio_histogram"], use_container_width=True)
 
     # --- Show the risk metrics ---
     st.success(f"5% VaR: ${result['VaR_5']:,.2f}")
@@ -150,13 +148,16 @@ if "ticker_analysis" not in st.session_state:
 if "other_analysis" not in st.session_state:
     st.session_state.other_analysis = None
 
+
 def select_ticker_analysis():
     # When a ticker feature is selected, clear other_analysis
     st.session_state.other_analysis = None
 
+
 def select_other_analysis():
     # When other feature is selected, clear ticker_analysis
     st.session_state.ticker_analysis = None
+
 
 selected_ticker_feature = st.sidebar.radio(
     "Choose analysis:",
