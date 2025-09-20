@@ -82,3 +82,8 @@ def survivorship_bias_summary_plot() -> tuple[pd.DataFrame, plt.Figure]:
     ax.legend()
 
     return summary, fig
+
+
+if __name__ == "__main__":
+    survivorship_bias_summary_plot()
+    plt.show()

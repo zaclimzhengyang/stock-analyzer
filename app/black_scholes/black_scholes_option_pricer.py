@@ -246,7 +246,6 @@ def bsop(ticker: str) -> pd.DataFrame:
     main_df = calls.copy()
     columns_to_drop = [
         "lastTradeDate",
-        "lastPrice",
         "volume",
         "openInterest",
         "contractSize",
@@ -279,3 +278,16 @@ def bsop(ticker: str) -> pd.DataFrame:
     print(greeks_df.head(10))
 
     return greeks_df
+
+if __name__ == "__main__":
+    ticker = "AAPL"
+    df = bsop(ticker)
+    print(df)
+    plt.plot(df["strike"], df["bsmValuation"], label="BSM Theoretical Price")
+    plt.scatter(df["strike"], df["lastPrice"], color="red", label="Market Price", alpha=0.5)
+    plt.title(f"{ticker} Call Options - BSM Theoretical vs Market Price")
+    plt.xlabel("Strike Price")
+    plt.ylabel("Option Price ($)")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
