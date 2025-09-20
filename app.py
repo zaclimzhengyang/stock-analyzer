@@ -20,6 +20,7 @@ from app.trading_strategies.pair_trading import pair_trading_strategy
 
 
 # === Import trading strategies ===
+@st.cache_data
 def run_gbm_monte_carlo(ticker: str, start_date: str, end_date: str):
     """
     Helper to run the GBM Monte Carlo simulation and display it in Streamlit.
@@ -43,17 +44,20 @@ def run_gbm_monte_carlo(ticker: str, start_date: str, end_date: str):
     # --- Run the simulation (this returns the Plotly figure and metrics) ---
     result = mc_simulation_gbm(ticker, start_date, end_date)
 
-    # --- Display the figure inside Streamlit ---
-    st.plotly_chart(result["stock_price_fig"], use_container_width=True)
-    st.plotly_chart(result["stock_price_histogram"], use_container_width=True)
-    st.plotly_chart(result["portfolio_fig"], use_container_width=True)
-    st.plotly_chart(result["portfolio_histogram"], use_container_width=True)
+    try:
+        # --- Display the figure inside Streamlit ---
+        st.plotly_chart(result["stock_price_fig"], use_container_width=True)
+        st.plotly_chart(result["stock_price_histogram"], use_container_width=True)
+        st.plotly_chart(result["portfolio_fig"], use_container_width=True)
+        st.plotly_chart(result["portfolio_histogram"], use_container_width=True)
+        # --- Show the risk metrics ---
+        st.success(f"5% VaR: ${result['VaR_5']:,.2f}")
+        st.success(f"5% CVaR: ${result['CVaR_5']:,.2f}")
+    finally:
+        plt.close("all")
 
-    # --- Show the risk metrics ---
-    st.success(f"5% VaR: ${result['VaR_5']:,.2f}")
-    st.success(f"5% CVaR: ${result['CVaR_5']:,.2f}")
 
-
+@st.cache_data
 def run_pair_trading():
     st.subheader("🔗 Pairs Trading Strategy (JKHY vs LDOS)")
 
@@ -75,13 +79,17 @@ def run_pair_trading():
         - Visualizes the PnL curve and trade markers to show how the strategy would perform over time.
         """)
 
-    pair_trading_strategy()
+    try:
+        pair_trading_strategy()
 
-    for fig_num in plt.get_fignums():
-        fig = plt.figure(fig_num)
-        st.pyplot(fig)
+        for fig_num in plt.get_fignums():
+            fig = plt.figure(fig_num)
+            st.pyplot(fig)
+    finally:
+        cleanup_plots()
 
 
+@st.cache_data
 def run_etf_dca():
     st.subheader("💰 Top 10 Performing ETF DCA Backtest (2020-2025)")
     # --- Summary Section ---
@@ -103,15 +111,19 @@ def run_etf_dca():
         - Provides a transparent comparison of **risk-adjusted performance** across ETFs.  
         """)
 
-    dcf_etf_main()
+    try:
+        dcf_etf_main()
 
-    figs = []
-    for fig_num in plt.get_fignums():
-        figs.append(plt.figure(fig_num))
+        figs = []
+        for fig_num in plt.get_fignums():
+            figs.append(plt.figure(fig_num))
+    finally:
+        cleanup_plots()
 
     return figs
 
 
+@st.cache_data
 def fundamentals_analysis(ticker: str, start_date: str, end_date: str) -> pd.DataFrame:
     """Run fundamentals + momentum analysis and return as DataFrame."""
     price_data = get_price_data(ticker, start_date, end_date)
@@ -127,6 +139,11 @@ def fundamentals_analysis(ticker: str, start_date: str, end_date: str) -> pd.Dat
     }
 
     return pd.DataFrame.from_dict(fundamentals_data, orient="index", columns=["Value"])
+
+
+def cleanup_plots():
+    """Helper to close all matplotlib plots to avoid overlaps."""
+    plt.close("all")
 
 
 # === App title ===
@@ -145,8 +162,10 @@ ticker_features = ["Fundamentals", "GBM Monte Carlo Simulation"]
 # Initialize session_state if not exists
 if "ticker_analysis" not in st.session_state:
     st.session_state.ticker_analysis = None
+    st.cache_data.clear()
 if "other_analysis" not in st.session_state:
     st.session_state.other_analysis = None
+    st.cache_data.clear()
 
 
 def select_ticker_analysis():
