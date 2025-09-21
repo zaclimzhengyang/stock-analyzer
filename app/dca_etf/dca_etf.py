@@ -207,6 +207,8 @@ def dcf_etf_main():
     plt.show()
     print("Time taken:", dt.datetime.now() - start_time)
 
+    return results
+
 
 if __name__ == "__main__":
     dcf_etf_main()

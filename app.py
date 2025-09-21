@@ -12,6 +12,7 @@ from app.backtest.backtest import get_backtest
 from app.back_trader.analyzer import backtrader_analyze
 from app.back_trader.models import RunSettings
 from app.black_scholes.black_scholes_option_pricer import bsop
+from app.ml.lstm import lstm_forecast
 from app.monte_carlo.gbm_simulation import mc_simulation_gbm
 from app.prediction.predictor import scan_top_nasdaq
 from app.probability_density_function.pdf import pdf
@@ -45,14 +46,18 @@ def run_gbm_monte_carlo(ticker: str, start_date: str, end_date: str):
     result = mc_simulation_gbm(ticker, start_date, end_date)
 
     try:
+        col1, col2 = st.columns(2)
+        # --- Show the risk metrics ---
+        with col1:
+            st.metric("5% Value at Risk (VaR)", f"${float(result['VaR_5']):,.2f}")
+        with col2:
+            st.metric("5% Conditional VaR (CVaR)", f"${float(result['CVaR_5']):,.2f}")
+
         # --- Display the figure inside Streamlit ---
         st.plotly_chart(result["stock_price_fig"], use_container_width=True)
         st.plotly_chart(result["stock_price_histogram"], use_container_width=True)
         st.plotly_chart(result["portfolio_fig"], use_container_width=True)
         st.plotly_chart(result["portfolio_histogram"], use_container_width=True)
-        # --- Show the risk metrics ---
-        st.success(f"5% VaR: ${result['VaR_5']:,.2f}")
-        st.success(f"5% CVaR: ${result['CVaR_5']:,.2f}")
     finally:
         plt.close("all")
 
@@ -112,11 +117,39 @@ def run_etf_dca():
         """)
 
     try:
-        dcf_etf_main()
+        results = dcf_etf_main()
+        # Convert list of dicts to sorted dataframe
+        df = pd.DataFrame(results).sort_values("return", ascending=False).head(9)
 
+        # Display metrics for top 9 ETFs in groups of 3
+        for i in range(0, 9, 3):
+            col1, col2, col3 = st.columns(3)
+
+            with col1:
+                st.metric(
+                    f"#{i + 1} {df.iloc[i]['ticker']}",
+                    f"${df.iloc[i]['final']:,.2f}",
+                    f"Invested: ${df.iloc[i]['invested']:,.2f}"
+                )
+            with col2:
+                st.metric(
+                    f"#{i + 2} {df.iloc[i + 1]['ticker']}",
+                    f"${df.iloc[i + 1]['final']:,.2f}",
+                    f"Invested: ${df.iloc[i + 1]['invested']:,.2f}"
+                )
+            with col3:
+                st.metric(
+                    f"#{i + 3} {df.iloc[i + 2]['ticker']}",
+                    f"${df.iloc[i + 2]['final']:,.2f}",
+                    f"Invested: ${df.iloc[i + 2]['invested']:,.2f}"
+                )
+
+        # Display plots
         figs = []
         for fig_num in plt.get_fignums():
-            figs.append(plt.figure(fig_num))
+            fig = plt.figure(fig_num)
+            figs.append(fig)
+
     finally:
         cleanup_plots()
 
@@ -141,6 +174,36 @@ def fundamentals_analysis(ticker: str, start_date: str, end_date: str) -> pd.Dat
     return pd.DataFrame.from_dict(fundamentals_data, orient="index", columns=["Value"])
 
 
+@st.cache_data
+def run_lstm_forecast(ticker: str, start_date: str, end_date: str):
+    # Show loading message
+    with st.spinner('Training LSTM model...'):
+        # Get forecast results
+        result = lstm_forecast(ticker, start_date, end_date)
+
+        # Display summary metrics
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Last Actual Price", f"${float(result['last_actual_price']):.2f}")
+        with col2:
+            st.metric("Forecast Start", result['forecast_start_date'].strftime('%Y-%m-%d'))
+        with col3:
+            st.metric("Forecast End", result['forecast_end_date'].strftime('%Y-%m-%d'))
+
+        # Display forecast table
+        st.write("30-Day Price Forecast:")
+        forecast_df = pd.DataFrame({
+            'Date': result['future_dates'],
+            'Forecasted Price': result['future_prices']
+        })
+        forecast_df['Forecasted Price'] = forecast_df['Forecasted Price'].round(2)
+        st.dataframe(forecast_df)
+
+        # Display plot
+        st.pyplot(result['figure'])
+        plt.close('all')  # Clean up
+
+
 def cleanup_plots():
     """Helper to close all matplotlib plots to avoid overlaps."""
     plt.close("all")
@@ -157,7 +220,9 @@ end_date = st.sidebar.text_input("End Date", "2025-06-01")
 
 # --- Sidebar menu for ticker-specific analyses ---
 st.sidebar.header("Ticker Analyses")
-ticker_features = ["Fundamentals", "GBM Monte Carlo Simulation"]
+ticker_features = ["Fundamentals",
+                   "GBM Monte Carlo Simulation",
+                   "Long Short-Term Memory Forecast"]
 
 # Initialize session_state if not exists
 if "ticker_analysis" not in st.session_state:
@@ -208,6 +273,9 @@ if st.session_state.ticker_analysis:
         st.table(df)
     elif st.session_state.ticker_analysis == "GBM Monte Carlo Simulation":
         run_gbm_monte_carlo(ticker, start_date, end_date)
+    elif st.session_state.ticker_analysis == "Long Short-Term Memory Forecast":
+        st.subheader(f"Long Short-Term Memory Forecast - {ticker}")
+        run_lstm_forecast(ticker, start_date, end_date)
 
 # --- Run other analyses ---
 elif st.session_state.other_analysis:
