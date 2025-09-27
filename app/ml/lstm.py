@@ -138,36 +138,45 @@ def lstm_forecast(ticker, start_date, end_date, forecast_days=30):
             last_sequence = torch.roll(last_sequence, -1, dims=1)
             last_sequence[0, -1, 0] = pred[0, 0]
 
+    # Get actual data for comparison
+    future_actual = yf.download(ticker, start=future_dates[0], end=future_dates[-1], auto_adjust=False)
+
     # Create plot
-    plt.close('all')  # Clear any existing plots
+    plt.close('all')
     fig, ax = plt.subplots(figsize=(12, 6))
 
     # Plot historical data
-    ax.plot(df.index[-100:], df['Adj Close'][-100:], label='Historical', color='blue')
+    ax.plot(df.index[-100:], df['Adj Close'][-100:], 'b-', label='Historical', linewidth=2)
 
-    # Plot forecast
-    ax.plot(future_dates, future_prices, 'r--', label='Forecast')
+    # Plot forecast in red dashed line
+    ax.plot(future_dates, future_prices, 'r--', label='Forecast', linewidth=2)
+
+    # Plot actual future data in blue dotted line if available
+    if not future_actual.empty:
+        ax.plot(future_actual.index, future_actual['Adj Close'], 'b:', label='Actual', linewidth=2)
 
     # Customize plot
-    ax.set_title(f'{ticker} Stock Price Forecast')
+    ax.set_title(f'{ticker} Stock Price Forecast vs Actual')
     ax.set_xlabel('Date')
-    ax.set_ylabel('Price')
+    ax.set_ylabel('Price ($)')
     ax.legend()
-    ax.grid(True)
+    ax.grid(True, linestyle='--', alpha=0.7)
 
-    # Format dates on x-axis
+    # Format dates
     plt.xticks(rotation=45)
     plt.tight_layout()
 
-    # Create results dictionary
     results = {
         'future_dates': future_dates,
         'future_prices': future_prices,
+        'actual_prices': future_actual['Adj Close'].to_dict() if not future_actual.empty else None,
         'figure': fig,
         'last_actual_price': df['Adj Close'].iloc[-1],
         'forecast_start_date': future_dates[0],
         'forecast_end_date': future_dates[-1]
     }
+
+    return results
 
     return results
 
