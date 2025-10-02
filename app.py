@@ -1,8 +1,12 @@
+import os
+
 import pandas as pd
 import streamlit as st
 from datetime import datetime, timedelta
 
+from llama_index import SimpleDirectoryReader, VectorStoreIndex
 from matplotlib import pyplot as plt
+from llama_index.llms.openai import OpenAI
 
 # === Import analysis functions ===
 from app.data.downloader import get_price_data, get_fundamentals
@@ -254,7 +258,9 @@ selected_ticker_feature = st.sidebar.radio(
 
 # --- Sidebar menu for other analyses ---
 st.sidebar.header("Other Analyses")
-other_features = ["Top 10 performing ETF DCA Backtest (2020-2025)", "Pairs Trading (JKHY vs LDOS)"]
+other_features = ["Top 10 performing ETF DCA Backtest (2020-2025)",
+                  "Pairs Trading (JKHY vs LDOS)",
+                  "Private Equity Document Q&A"]
 
 selected_other_feature = st.sidebar.radio(
     "Choose other analysis:",
@@ -287,6 +293,43 @@ elif st.session_state.other_analysis:
         pair_trading_container = st.container()
         with pair_trading_container:
             run_pair_trading()
+    elif st.session_state.other_analysis == "Private Equity Document Q&A":
+        st.title("📑 Private Equity Document Q&A")
+
+        os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
+
+        uploaded_files = st.file_uploader(
+            "Upload one or more documents (PDF, TXT, DOCX)",
+            type=["pdf", "txt", "docx"],
+            accept_multiple_files=True
+        )
+
+        if uploaded_files:
+            # Save uploaded files to a temp directory
+            temp_dir = "uploaded_docs"
+            os.makedirs(temp_dir, exist_ok=True)
+
+            for f in uploaded_files:
+                with open(os.path.join(temp_dir, f.name), "wb") as out:
+                    out.write(f.getbuffer())
+
+            # Build the index
+            with st.spinner("🔎 Building document index..."):
+                documents = SimpleDirectoryReader(temp_dir).load_data()
+                llm = OpenAI(model="gpt-4o-mini")
+                index = VectorStoreIndex.from_documents(documents, llm=llm)
+                query_engine = index.as_query_engine()
+
+            st.success("✅ Documents indexed! You can now ask questions.")
+
+            # Ask Questions
+            question = st.text_input("Ask a question about your documents:")
+            if question:
+                with st.spinner("💡 Generating answer..."):
+                    response = query_engine.query(question)
+                    st.subheader("Answer")
+                    st.write(str(response))
+
 #
 # # === Run selected feature ===
 # if feature_selected:
