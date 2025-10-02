@@ -4,8 +4,9 @@ import pandas as pd
 import streamlit as st
 from datetime import datetime, timedelta
 
-from llama_index.indices.vector_store import VectorStoreIndex
-from llama_index.readers.file.base import SimpleDirectoryReader
+# from llama_index.indices.vector_store import VectorStoreIndex
+# from llama_index.readers.file.base import SimpleDirectoryReader
+from llama_index import SimpleDirectoryReader, VectorStoreIndex
 
 from matplotlib import pyplot as plt
 from llama_index.llms.openai import OpenAI
