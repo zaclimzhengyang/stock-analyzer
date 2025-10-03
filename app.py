@@ -102,6 +102,78 @@ def run_pair_trading():
         cleanup_plots()
 
 
+def run_pe_document_qa():
+    st.subheader("📑 Private Equity Document Q&A")
+
+    st.markdown(
+        """
+        This tool lets you **upload private equity documents** (such as investment memos, reports, 
+        or financial statements) and then ask natural language questions about them.
+
+        **How it works:**
+        1. Upload one or more documents (`PDF`, `TXT`, or `DOCX`).
+        2. The app uses an **AI language model** (OpenAI GPT) to read and index the documents.
+        3. Once indexed, you can type questions like:
+           - *"What is the fund’s target IRR?"*  
+           - *"Summarize the investment thesis."*  
+           - *"What risks are highlighted in this memo?"*
+        4. The system will provide an **AI-generated answer** based on the document content.
+
+        ⚡ This makes it faster to analyze long and detailed PE documents without reading line by line.
+        """
+    )
+
+    os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
+
+    uploaded_files = st.file_uploader(
+        "Upload one or more documents (PDF, TXT, DOCX)",
+        type=["pdf", "txt", "docx"],
+        accept_multiple_files=True
+    )
+
+    if uploaded_files:
+        temp_dir = "uploaded_docs"
+
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
+        os.makedirs(temp_dir, exist_ok=True)
+
+        # Save uploaded files to a temp directory
+        temp_dir = "uploaded_docs"
+        os.makedirs(temp_dir, exist_ok=True)
+
+        for f in uploaded_files:
+            file_path = os.path.join(temp_dir, f.name)
+            with open(file_path, "wb") as out:
+                out.write(f.getbuffer())
+
+        # === Cached document loader ===
+        @st.cache_data(show_spinner=False)
+        def load_docs(temp_dir: str):
+            return SimpleDirectoryReader(temp_dir).load_data()
+
+        # === Cached index builder ===
+        @st.cache_resource(show_spinner=False)
+        def build_index(docs):
+            llm = OpenAI(model="gpt-4o-mini")
+            return VectorStoreIndex.from_documents(docs, llm=llm)
+
+        with st.spinner("🔎 Building document index..."):
+            documents = load_docs(temp_dir)
+            index = build_index(documents)
+            query_engine = index.as_query_engine()
+
+        st.success("✅ Documents indexed! You can now ask questions.")
+
+        # Ask Questions
+        question = st.text_input("Ask a question about your documents:")
+        if question:
+            with st.spinner("💡 Generating answer..."):
+                response = query_engine.query(question)
+                st.subheader("Answer")
+                st.write(str(response))
+
+
 @st.cache_data
 def run_etf_dca():
     st.subheader("💰 Top 10 Performing ETF DCA Backtest (2020-2025)")
@@ -298,61 +370,9 @@ elif st.session_state.other_analysis:
         with pair_trading_container:
             run_pair_trading()
     elif st.session_state.other_analysis == "Private Equity Document Q&A":
-        st.title("📑 Private Equity Document Q&A")
-
-        os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
-
-        uploaded_files = st.file_uploader(
-            "Upload one or more documents (PDF, TXT, DOCX)",
-            type=["pdf", "txt", "docx"],
-            accept_multiple_files=True
-        )
-
-        if uploaded_files:
-            temp_dir = "uploaded_docs"
-
-            if os.path.exists(temp_dir):
-                shutil.rmtree(temp_dir)
-            os.makedirs(temp_dir, exist_ok=True)
-
-            # Save uploaded files to a temp directory
-            temp_dir = "uploaded_docs"
-            os.makedirs(temp_dir, exist_ok=True)
-
-            for f in uploaded_files:
-                file_path = os.path.join(temp_dir, f.name)
-                with open(file_path, "wb") as out:
-                    out.write(f.getbuffer())
-
-
-            # === Cached document loader ===
-            @st.cache_data(show_spinner=False)
-            def load_docs(temp_dir: str):
-                return SimpleDirectoryReader(temp_dir).load_data()
-
-
-            # === Cached index builder ===
-            @st.cache_resource(show_spinner=False)
-            def build_index(docs):
-                llm = OpenAI(model="gpt-4o-mini")
-                return VectorStoreIndex.from_documents(docs, llm=llm)
-
-
-            with st.spinner("🔎 Building document index..."):
-                documents = load_docs(temp_dir)
-                index = build_index(documents)
-                query_engine = index.as_query_engine()
-
-            st.success("✅ Documents indexed! You can now ask questions.")
-
-            # Ask Questions
-            question = st.text_input("Ask a question about your documents:")
-            if question:
-                with st.spinner("💡 Generating answer..."):
-                    response = query_engine.query(question)
-                    st.subheader("Answer")
-                    st.write(str(response))
-
+        pe_container = st.container()
+        with pe_container:
+            run_pe_document_qa()
 
 #
 # # === Run selected feature ===
