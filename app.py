@@ -1,4 +1,5 @@
 import os
+import shutil
 
 import pandas as pd
 import streamlit as st
@@ -308,6 +309,12 @@ elif st.session_state.other_analysis:
         )
 
         if uploaded_files:
+            temp_dir = "uploaded_docs"
+
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
+            os.makedirs(temp_dir, exist_ok=True)
+
             # Save uploaded files to a temp directory
             temp_dir = "uploaded_docs"
             os.makedirs(temp_dir, exist_ok=True)
