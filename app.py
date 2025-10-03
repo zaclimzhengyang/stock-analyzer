@@ -313,7 +313,8 @@ elif st.session_state.other_analysis:
             os.makedirs(temp_dir, exist_ok=True)
 
             for f in uploaded_files:
-                with open(os.path.join(temp_dir, f.name), "wb") as out:
+                file_path = os.path.join(temp_dir, f.name)
+                with open(file_path, "wb") as out:
                     out.write(f.getbuffer())
 
             # Build the index
