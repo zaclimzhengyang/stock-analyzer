@@ -317,11 +317,23 @@ elif st.session_state.other_analysis:
                 with open(file_path, "wb") as out:
                     out.write(f.getbuffer())
 
-            # Build the index
-            with st.spinner("🔎 Building document index..."):
-                documents = SimpleDirectoryReader(temp_dir).load_data()
+
+            # === Cached document loader ===
+            @st.cache_data(show_spinner=False)
+            def load_docs(temp_dir: str):
+                return SimpleDirectoryReader(temp_dir).load_data()
+
+
+            # === Cached index builder ===
+            @st.cache_resource(show_spinner=False)
+            def build_index(docs):
                 llm = OpenAI(model="gpt-4o-mini")
-                index = VectorStoreIndex.from_documents(documents, llm=llm)
+                return VectorStoreIndex.from_documents(docs, llm=llm)
+
+
+            with st.spinner("🔎 Building document index..."):
+                documents = load_docs(temp_dir)
+                index = build_index(documents)
                 query_engine = index.as_query_engine()
 
             st.success("✅ Documents indexed! You can now ask questions.")
@@ -333,6 +345,7 @@ elif st.session_state.other_analysis:
                     response = query_engine.query(question)
                     st.subheader("Answer")
                     st.write(str(response))
+
 
 #
 # # === Run selected feature ===
