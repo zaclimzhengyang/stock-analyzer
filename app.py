@@ -7,7 +7,8 @@ from datetime import datetime, timedelta
 
 # from llama_index.indices.vector_store import VectorStoreIndex
 # from llama_index.readers.file.base import SimpleDirectoryReader
-from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
+from llama_index.core import SimpleDirectoryReader, VectorStoreIndex, PromptTemplate
+from llama_index.embeddings.openai import OpenAIEmbedding
 
 from matplotlib import pyplot as plt
 from llama_index.llms.openai import OpenAI
@@ -161,17 +162,29 @@ def run_pe_document_qa():
         with st.spinner("🔎 Building document index..."):
             documents = load_docs(temp_dir)
             index = build_index(documents)
-            query_engine = index.as_query_engine()
+
+            # Custom PE analyst prompt
+            pe_prompt = PromptTemplate(
+                "You are a Private Equity analyst. Use the provided documents to "
+                "answer questions with a structured format:\n\n"
+                "1. **Summary** – short overview\n"
+                "2. **Valuation Insights** – multiples, IRR, MOIC, etc.\n"
+                "3. **Risks** – highlight investment and operational risks\n"
+                "4. **Opportunities** – upside potential, strategic rationale\n\n"
+                "If the answer is not in the documents, state clearly: 'Not found in documents'."
+            )
+
+            query_engine = index.as_query_engine(text_qa_template=pe_prompt)
 
         st.success("✅ Documents indexed! You can now ask questions.")
 
         # Ask Questions
-        question = st.text_input("Ask a question about your documents:")
+        question = st.text_input("Ask a question about your deal documents:")
         if question:
-            with st.spinner("💡 Generating answer..."):
+            with st.spinner("💡 Analyzing like a PE analyst..."):
                 response = query_engine.query(question)
                 st.subheader("Answer")
-                st.write(str(response))
+                st.markdown(str(response))
 
 
 @st.cache_data
