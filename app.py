@@ -165,13 +165,27 @@ def run_pe_document_qa():
 
             # Custom PE analyst prompt
             pe_prompt = PromptTemplate(
-                "You are a Private Equity analyst. Use the provided documents to "
-                "answer questions with a structured format:\n\n"
-                "1. **Summary** – short overview\n"
-                "2. **Valuation Insights** – multiples, IRR, MOIC, etc.\n"
-                "3. **Risks** – highlight investment and operational risks\n"
-                "4. **Opportunities** – upside potential, strategic rationale\n\n"
-                "If the answer is not in the documents, state clearly: 'Not found in documents'."
+                """You are an experienced **Private Equity Analyst** tasked with analyzing confidential deal documents 
+                (e.g., CIMs, investor reports, due diligence memos, financial statements, etc.). 
+                Your goal is to synthesize precise, evidence-based insights — not speculation.
+
+                **Instructions:**
+                - Use only the information contained in the uploaded documents.
+                - If relevant data (e.g., valuation, metrics, company details) is missing, clearly state: 
+                  "Not found in documents."
+                - Quantify insights wherever possible (e.g., EBITDA, IRR, revenue growth, MOIC).
+                - Write concisely, using a professional tone suitable for an investment committee memo.
+
+                **Response Format:**
+
+                1. **Executive Summary** – 2–3 sentences summarizing the investment context and key findings.
+                2. **Valuation Insights** – Include multiples, comparables, IRR, MOIC, revenue/EBITDA growth, or DCF assumptions.
+                3. **Risks & Mitigants** – Identify major risks (financial, operational, regulatory) and note any mitigants or management responses.
+                4. **Opportunities / Upside Drivers** – Discuss growth levers, synergies, margin expansion, or strategic rationale.
+                5. **Conclusion** – Short paragraph summarizing investment attractiveness and next steps.
+
+                Provide answers in markdown format for clear readability.
+                """
             )
 
             query_engine = index.as_query_engine(text_qa_template=pe_prompt)
