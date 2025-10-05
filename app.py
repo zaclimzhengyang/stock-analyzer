@@ -156,7 +156,7 @@ def run_pe_document_qa():
         # === Cached index builder ===
         @st.cache_resource(show_spinner=False)
         def build_index(docs):
-            llm = OpenAI(model="gpt-4.1")
+            llm = OpenAI(model="gpt-5")
             return VectorStoreIndex.from_documents(docs, llm=llm)
 
         with st.spinner("🔎 Building document index..."):
